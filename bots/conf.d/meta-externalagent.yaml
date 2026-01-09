@@ -1,0 +1,8 @@
+# Meta AI/Facebook crawler
+# https://developers.cloudflare.com/bots/concepts/bot/verified-bots/
+kind: AiCrawler
+name: meta-externalagent
+ua: "Meta-ExternalAgent"
+parser: google
+urls:
+  - "https://developers.facebook.com/externalagent_vaa.json"

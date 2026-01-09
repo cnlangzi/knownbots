@@ -1,0 +1,8 @@
+# OpenAI ChatGPT user agent
+# https://developers.cloudflare.com/bots/concepts/bot/verified-bots/
+kind: AiAssistant
+name: chatgpt-user
+ua: "ChatGPT-User"
+rdns: true
+domains:
+  - "openai.com"

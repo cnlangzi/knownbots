@@ -1,0 +1,8 @@
+# Semrush general crawler
+# https://developers.cloudflare.com/bots/concepts/bot/verified-bots/
+kind: Seo
+name: semrushbot
+ua: "Semrushbot"
+rdns: true
+domains:
+  - "semrush.com"

@@ -1,0 +1,8 @@
+# DuckDuckGo bot
+# https://developers.cloudflare.com/bots/concepts/bot/verified-bots/
+kind: SearchEngine
+name: duckduckbot
+ua: "DuckDuckBot"
+rdns: true
+domains:
+  - "duckduckgo.com"

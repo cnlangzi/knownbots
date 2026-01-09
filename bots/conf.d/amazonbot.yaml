@@ -1,0 +1,8 @@
+# Amazon AI crawler
+# https://developers.cloudflare.com/bots/concepts/bot/verified-bots/
+kind: AiCrawler
+name: amazonbot
+ua: "Amazonbot"
+parser: google
+urls:
+  - "https://bark-robots.s3.amazonaws.com/crawlers/amazonbot/amazonbot.json"

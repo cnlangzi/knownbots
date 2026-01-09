@@ -1,0 +1,8 @@
+# LinkedIn link preview bot
+# https://developers.cloudflare.com/bots/concepts/bot/verified-bots/
+kind: SocialMedia
+name: linkedinbot
+ua: "LinkedInBot"
+rdns: true
+domains:
+  - "linkedin.com"
