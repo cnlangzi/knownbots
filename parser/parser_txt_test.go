@@ -62,3 +62,37 @@ func TestTxtParser(t *testing.T) {
 		})
 	}
 }
+
+func TestTxtParserWithRealFormat(t *testing.T) {
+	p := &TxtParser{}
+	testInput := "172.217.0.0/16\n142.250.0.0/15\n192.178.0.0/15"
+	result, err := p.Parse(strings.NewReader(testInput))
+	if err != nil {
+		t.Fatalf("failed to parse: %v", err)
+	}
+	if len(result) == 0 {
+		t.Error("expected non-empty result")
+	}
+	if len(result) != 3 {
+		t.Errorf("expected 3 prefixes, got %d", len(result))
+	}
+}
+
+func TestIntegration_UptimeRobot(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+	p := &TxtParser{}
+	data, err := fetchFromURL("https://uptimerobot.com/inc/files/ips/IPv4.txt")
+	if err != nil {
+		t.Fatalf("failed to fetch: %v", err)
+	}
+	result, err := p.Parse(strings.NewReader(string(data)))
+	if err != nil {
+		t.Fatalf("failed to parse: %v", err)
+	}
+	if len(result) == 0 {
+		t.Error("UptimeRobot IP list should not be empty")
+	}
+	t.Logf("UptimeRobot: parsed %d prefixes", len(result))
+}

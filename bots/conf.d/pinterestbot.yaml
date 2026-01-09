@@ -1,6 +1,6 @@
 # Pinterest bot
 # https://developers.cloudflare.com/bots/concepts/bot/verified-bots/
-kind: Scraper
+kind: SocialMedia
 name: pinterestbot
 ua: "PinterestBot"
 rdns: true
