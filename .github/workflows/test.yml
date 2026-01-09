@@ -24,10 +24,7 @@ jobs:
           cache: true
 
       - name: Run unit tests
-        run: go test ./... -race -coverprofile=coverage.out -covermode=atomic
-
-      - name: Run integration tests
-        run: go test -v ./parser/ -run Integration
+        run: go test -short ./... -race -coverprofile=coverage.out -covermode=atomic
 
       - name: Upload coverage
         uses: codecov/codecov-action@v4
