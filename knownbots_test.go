@@ -145,14 +145,18 @@ func TestClassifyUA(t *testing.T) {
 		{"Mozilla", Suspicious},
 		{"Mozilla/5.0 (X11)", Suspicious},
 		{"Mozilla/5.0 (Windows NT 10.0)", Suspicious},
-		// Unknown (not browser-like at all)
+		{"Mozilla/5.0 (iPhone; CPU iPhone OS 14_0) AppleWebKit/605.1.15 Gecko/20100101", Suspicious},
+		{"Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 (iPhone; CPU iPhone OS 14_0)", Suspicious},
+		{"Mozilla/5.0 (iPad; CPU OS 14_0 like Mac OS X) Gecko/20100101 Firefox/95.0", Suspicious},
+		{"Mozilla/5.0 (compatible; Bot; \\(paren\\))", Suspicious},
+		{"Mozilla/5.0 (unbalanced \\(", Suspicious},
 		{"", Unknown},
 		{"Googlebot/2.1", Unknown},
 		{"curl/7.68.0", Unknown},
 		{"python-requests/2.28.0", Unknown},
 		{"Bot/1.0", Unknown},
-		{"Mozilla/5.0 (compatible; Bot; \\(paren\\))", Suspicious},
-		{"Mozilla/5.0 (unbalanced \\(", Suspicious},		{"Mozilla/5.0 (unbalanced \\(", Suspicious},	}
+		{"UnknownBot/1.0", Unknown},
+	}
 
 	for _, tt := range tests {
 		result := classifyUA(tt.ua)
