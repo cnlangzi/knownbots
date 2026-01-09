@@ -93,20 +93,30 @@ jobs:
             
             for (const line of lines) {
               if (line.includes('BenchmarkValidate_WithBotUA')) {
+                // Format: BenchmarkValidate_WithBotUA-1    807.8 ns/op         0 B/op          0 allocs/op
+                // parts: [name-iterations, ns/op, B/op, allocs/op]
                 const parts = line.trim().split(/\s+/);
-                const cpu = parts[0].includes('-4') ? '4' : parts[0].includes('-8') ? '8' : '1';
-                const ns = parts[2];
-                const bPerOp = parts[4] || '0';
-                const allocs = parts[5] || '0';
-                validateResults.push({ cpu, ns, bPerOp, allocs });
+                // Find CPU from benchmark name suffix (-1, -4, -8)
+                const nameParts = parts[0].split('-');
+                const cpu = nameParts[nameParts.length - 1];
+                const ns = parts[1];
+                // B/op is the 3rd column (parts[2]), but may have spaces
+                const bPerOp = parts[2] === 'ns/op' ? '0' : parts[2];
+                // Find the numeric value before "B/op"
+                const bMatch = line.match(/(\d+)\s+B\/op/);
+                const actualBPerOp = bMatch ? bMatch[1] : '0';
+                // Find allocs count
+                const allocsMatch = line.match(/(\d+)\s+allocs\/op/);
+                const allocs = allocsMatch ? allocsMatch[1] : '0';
+                validateResults.push({ cpu, ns, bPerOp: actualBPerOp, allocs });
               }
               if (line.includes('BenchmarkContainsIP')) {
                 const parts = line.trim().split(/\s+/);
-                containsIPns = parts[2];
+                containsIPns = parts[1];
               }
               if (line.includes('BenchmarkFindBotByUA')) {
                 const parts = line.trim().split(/\s+/);
-                findBotByUAns = parts[2];
+                findBotByUAns = parts[1];
               }
             }
             
