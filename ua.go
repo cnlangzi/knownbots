@@ -244,8 +244,24 @@ func classifyUA(ua string) BrowserKind {
 		return Browser
 	}
 
+	// Mozilla-prefixed UAs without browser features warrant scrutiny, EXCEPT:
+	// - "Mozilla/5.0 (compatible; BotName/...)" is standard bot format (RFC 2616)
+	// - Official bots (Googlebot, Bingbot, etc.) use this format with "compatible" keyword
+	// - Without "compatible", likely a spoofed browser → Suspicious
+	// - With "compatible" but malformed syntax → Still Suspicious
+	// - With "compatible" and clean syntax → Unknown (let bot verification handle it)
 	if claimsMozilla && hasValidParens {
-		return Suspicious
+		// Real bots never escape parentheses - this indicates malformed/testing UA
+		if strings.Contains(ua, `\(`) || strings.Contains(ua, `\)`) {
+			return Suspicious
+		}
+		// Exception: "compatible" keyword indicates bot self-identification (RFC 2616 §14.43)
+		// Examples:
+		//   - Mozilla/5.0 (compatible; Googlebot/2.1; ...) → Unknown (legitimate bot)
+		//   - Mozilla/5.0 (Windows NT 10.0) → Suspicious (spoofed browser)
+		if !strings.Contains(ua, "compatible") {
+			return Suspicious
+		}
 	}
 
 	return Unknown
