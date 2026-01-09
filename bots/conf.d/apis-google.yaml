@@ -2,6 +2,7 @@
 # https://developers.google.com/crawling/docs/crawlers-fetchers/apis-user-agent
 kind: Monitor
 name: apis-google
+parser: google
 ua: "APIs-Google"
 urls:
   - "https://developers.google.com/static/search/apis/ipranges/special-crawlers.json"

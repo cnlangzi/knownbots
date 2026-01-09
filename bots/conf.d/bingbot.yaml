@@ -2,6 +2,7 @@
 # https://www.bing.com/help/learning about bingbots
 kind: SearchEngine
 name: bingbot
+parser: google
 ua: "bingbot"
 urls:
   - "https://www.bing.com/robots.txt"

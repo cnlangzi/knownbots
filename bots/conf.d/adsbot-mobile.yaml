@@ -2,6 +2,7 @@
 # https://developers.google.com/crawling/docs/crawlers-fetchers/google-special-case-crawlers#adsbot-mobile-web
 kind: Monitor
 name: adsbot-mobile
+parser: google
 ua: "AdsBot-Google-Mobile"
 urls:
   - "https://developers.google.com/static/search/apis/ipranges/special-crawlers.json"

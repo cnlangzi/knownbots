@@ -4,14 +4,14 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
-	"strings"
 	"sync/atomic"
 	"time"
+
+	"github.com/cnlangzi/knownbots/parser"
 )
 
 // Default settings
@@ -174,7 +174,7 @@ func (v *Validator) runScheduler(httpClient *http.Client) {
 
 	// Refresh IP ranges: update memory first, then persist
 	for _, bot := range bots {
-		newIPs := downloadIPs(httpClient, bot.URLs)
+		newIPs := downloadIPs(httpClient, bot)
 		if len(newIPs) == 0 {
 			continue
 		}
@@ -201,10 +201,12 @@ func (v *Validator) runScheduler(httpClient *http.Client) {
 	}
 }
 
-// downloadIPs fetches IP ranges from URLs and returns combined list.
-func downloadIPs(httpClient *http.Client, urls []string) []string {
+// downloadIPs fetches IP ranges from URLs and parses using the bot's registered parser.
+func downloadIPs(httpClient *http.Client, bot *Bot) []string {
 	var allIPs []string
-	for _, url := range urls {
+	p := parser.Get(bot.Parser)
+
+	for _, url := range bot.URLs {
 		resp, err := httpClient.Get(url)
 		if err != nil {
 			continue
@@ -215,13 +217,12 @@ func downloadIPs(httpClient *http.Client, urls []string) []string {
 			continue
 		}
 
-		data, _ := io.ReadAll(resp.Body)
-		for _, line := range strings.Split(string(data), "\n") {
-			line = strings.TrimSpace(line)
-			if line != "" {
-				allIPs = append(allIPs, line)
-			}
+		cidrs, err := p.Parse(resp.Body)
+		if err != nil {
+			log.Printf("[knownbots] failed to parse IPs from %s: %v", url, err)
+			continue
 		}
+		allIPs = append(allIPs, cidrs...)
 	}
 	return allIPs
 }

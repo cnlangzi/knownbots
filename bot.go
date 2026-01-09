@@ -35,6 +35,7 @@ const (
 type Bot struct {
 	Name    string        `yaml:"name"`
 	Kind    BotKind       `yaml:"kind"`
+	Parser  string        `yaml:"parser"` // parser name, defaults to bot name
 	UA      string        `yaml:"ua"`
 	URLs    []string      `yaml:"urls"`
 	custom  *atomic.Value // []IPPrefix, atomic for lock-free reads
@@ -85,6 +86,7 @@ func loadBot(path string) (*Bot, error) {
 	var tmp struct {
 		Name    string   `yaml:"name"`
 		Kind    BotKind  `yaml:"kind"`
+		Parser  string   `yaml:"parser"`
 		UA      string   `yaml:"ua"`
 		URLs    []string `yaml:"urls"`
 		Custom  []string `yaml:"custom"`
@@ -95,6 +97,12 @@ func loadBot(path string) (*Bot, error) {
 		return nil, err
 	}
 
+	// Use bot name as default parser if not specified
+	parser := tmp.Parser
+	if parser == "" {
+		parser = tmp.Name
+	}
+
 	customNets := parseCIDRs(tmp.Custom)
 	customValue := &atomic.Value{}
 	customValue.Store(customNets)
@@ -102,6 +110,7 @@ func loadBot(path string) (*Bot, error) {
 	return &Bot{
 		Name:    tmp.Name,
 		Kind:    tmp.Kind,
+		Parser:  parser,
 		UA:      tmp.UA,
 		URLs:    tmp.URLs,
 		custom:  customValue,

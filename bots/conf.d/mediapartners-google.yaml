@@ -2,6 +2,7 @@
 # https://developers.google.com/crawling/docs/crawlers-fetchers/google-special-case-crawlers#adsense
 kind: Monitor
 name: mediapartners-google
+parser: google
 ua: "Mediapartners-Google"
 urls:
   - "https://developers.google.com/static/search/apis/ipranges/special-crawlers.json"

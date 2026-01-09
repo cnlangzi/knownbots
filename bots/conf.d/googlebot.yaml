@@ -2,6 +2,7 @@
 # https://developers.google.com/search/docs/crawling-indexing/googlebot
 kind: SearchEngine
 name: googlebot
+parser: google
 ua: "Googlebot"
 urls:
   - "https://developers.google.com/static/search/apis/ipranges/googlebot.json"

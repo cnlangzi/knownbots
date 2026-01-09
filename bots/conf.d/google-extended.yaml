@@ -2,6 +2,7 @@
 # https://developers.google.com/search/docs/crawling-indexing/overview-google-crawlers#google-extended
 kind: AIMixed
 name: google-extended
+parser: google
 ua: "Google-Extended"
 urls:
   - "https://developers.google.com/static/search/apis/ipranges/googlebot.json"

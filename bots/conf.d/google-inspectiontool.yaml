@@ -2,6 +2,7 @@
 # https://developers.google.com/crawling/docs/crawlers-fetchers/google-common-crawlers#google-inspectiontool
 kind: Monitor
 name: google-inspectiontool
+parser: google
 ua: "Google-InspectionTool"
 urls:
   - "https://developers.google.com/static/search/apis/ipranges/googlebot.json"

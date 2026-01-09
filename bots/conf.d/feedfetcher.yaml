@@ -2,6 +2,7 @@
 # https://developers.google.com/crawling/docs/crawlers-fetchers/feedfetcher
 kind: SearchEngine
 name: feedfetcher
+parser: google
 ua: "FeedFetcher"
 urls:
   - "https://developers.google.com/static/search/apis/ipranges/user-triggered-fetchers-google.json"
