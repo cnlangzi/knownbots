@@ -12,4 +12,4 @@ domains:
   - "bing.com"
   - "microsoft.com"
   - "search.msn.com"
-rdns: true
+rdns: false
