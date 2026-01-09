@@ -1,3 +1,6 @@
+# Bingbot - Microsoft Bing search engine crawler
+# https://www.bing.com/help/learning about bingbots
+kind: SearchEngine
 name: bingbot
 ua: "bingbot"
 urls:

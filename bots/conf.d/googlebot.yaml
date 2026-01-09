@@ -1,10 +1,7 @@
+# Googlebot - Main search crawler for Google Search index
+# https://developers.google.com/search/docs/crawling-indexing/googlebot
+kind: SearchEngine
 name: googlebot
 ua: "Googlebot"
 urls:
-  - "https://www.gstatic.com/ipranges/google.json"
-custom:
-  - "66.249.64.0/19"
-domains:
-  - "googlebot.com"
-  - "google.com"
-rdns: true
+  - "https://developers.google.com/static/search/apis/ipranges/googlebot.json"

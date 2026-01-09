@@ -1,0 +1,7 @@
+# FeedFetcher - RSS/Atom feed fetcher for Google products
+# https://developers.google.com/crawling/docs/crawlers-fetchers/feedfetcher
+kind: SearchEngine
+name: feedfetcher
+ua: "FeedFetcher"
+urls:
+  - "https://developers.google.com/static/search/apis/ipranges/user-triggered-fetchers-google.json"

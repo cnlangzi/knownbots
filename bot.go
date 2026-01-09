@@ -14,9 +14,27 @@ import (
 // IPPrefix is a type alias for net/netip.Prefix for better performance.
 type IPPrefix = netip.Prefix
 
+// BotKind represents the category of a bot based on intent/behavior.
+// See classification matrix in bots/conf.d/ for full reference.
+type BotKind string
+
+const (
+	KindSearchEngine BotKind = "SearchEngine" // Search engine crawlers (Googlebot, Bingbot)
+	KindSocialMedia  BotKind = "SocialMedia"  // Social media preview fetchers (FacebookBot, Twitterbot)
+	KindAITraining   BotKind = "AITraining"   // AI model trainers - only take, no return (GPTBot, ClaudeBot)
+	KindAIAssist     BotKind = "AIAssist"     // AI assistants - search & answer, may bring traffic (PerplexityBot)
+	KindAIMixed      BotKind = "AIMixed"      // Mixed AI purposes (Google-Extended)
+	KindSEO          BotKind = "SEO"          // SEO backlink analyzers (AhrefsBot, SemrushBot)
+	KindMonitor      BotKind = "Monitor"      // Uptime/ad verification (Pingdom, AdsBot)
+	KindSecurity     BotKind = "Security"     // Security scanners (Censys, Shodan)
+	KindScraper      BotKind = "Scraper"      // Content/price scrapers
+	KindUnknown      BotKind = "Unknown"      // Unclassified
+)
+
 // Bot represents the configuration for a single bot.
 type Bot struct {
 	Name    string        `yaml:"name"`
+	Kind    BotKind       `yaml:"kind"`
 	UA      string        `yaml:"ua"`
 	URLs    []string      `yaml:"urls"`
 	custom  *atomic.Value // []IPPrefix, atomic for lock-free reads
@@ -66,6 +84,7 @@ func loadBot(path string) (*Bot, error) {
 
 	var tmp struct {
 		Name    string   `yaml:"name"`
+		Kind    BotKind  `yaml:"kind"`
 		UA      string   `yaml:"ua"`
 		URLs    []string `yaml:"urls"`
 		Custom  []string `yaml:"custom"`
@@ -82,6 +101,7 @@ func loadBot(path string) (*Bot, error) {
 
 	return &Bot{
 		Name:    tmp.Name,
+		Kind:    tmp.Kind,
 		UA:      tmp.UA,
 		URLs:    tmp.URLs,
 		custom:  customValue,

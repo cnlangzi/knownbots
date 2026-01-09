@@ -1,0 +1,7 @@
+# GoogleOther - General Google product crawler
+# https://developers.google.com/crawling/docs/crawlers-fetchers/google-common-crawlers#googleother
+kind: SearchEngine
+name: googleother
+ua: "GoogleOther"
+urls:
+  - "https://developers.google.com/static/search/apis/ipranges/googlebot.json"
