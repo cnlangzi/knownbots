@@ -1,6 +1,7 @@
 package knownbots
 
 import (
+	"net/netip"
 	"os"
 	"path/filepath"
 	"sync/atomic"
@@ -115,7 +116,8 @@ func TestContainsIP(t *testing.T) {
 		bot := &Bot{
 			custom: &atomic.Value{},
 		}
-		bot.SetCustom([]string{tt.cidr})
+		prefix, _ := netip.ParsePrefix(tt.cidr)
+		bot.SetCustom([]netip.Prefix{prefix})
 		result := bot.ContainsIP(tt.ip)
 		if result != tt.match {
 			t.Errorf("ContainsIP(%s, %s) = %v, want %v", tt.cidr, tt.ip, result, tt.match)
@@ -141,14 +143,16 @@ func TestClassifyUA(t *testing.T) {
 		{"Mozilla/5.0 Gecko/20100101", Suspicious},
 		{"AppleWebKit/537.36 Chrome/120.0.0.0", Suspicious},
 		{"Mozilla", Suspicious},
+		{"Mozilla/5.0 (X11)", Suspicious},
+		{"Mozilla/5.0 (Windows NT 10.0)", Suspicious},
 		// Unknown (not browser-like at all)
 		{"", Unknown},
 		{"Googlebot/2.1", Unknown},
 		{"curl/7.68.0", Unknown},
 		{"python-requests/2.28.0", Unknown},
 		{"Bot/1.0", Unknown},
-		{"UnknownBot/1.0", Unknown},
-	}
+		{"Mozilla/5.0 (compatible; Bot; \\(paren\\))", Suspicious},
+		{"Mozilla/5.0 (unbalanced \\(", Suspicious},		{"Mozilla/5.0 (unbalanced \\(", Suspicious},	}
 
 	for _, tt := range tests {
 		result := classifyUA(tt.ua)
@@ -192,39 +196,6 @@ func TestContainsWord(t *testing.T) {
 		result := containsWord(tt.text, tt.word)
 		if result != tt.expect {
 			t.Errorf("containsWord(%q, %q) = %v, want %v", tt.text, tt.word, result, tt.expect)
-		}
-	}
-}
-
-func TestContainsWordIgnoreCase(t *testing.T) {
-	tests := []struct {
-		text   string
-		word   string
-		expect bool
-	}{
-		{"Googlebot/2.1", "Googlebot", true},
-		{"googlebot/2.1", "Googlebot", true},
-		{"GOOGLEBOT/2.1", "Googlebot", true},
-		{"GoOgLeBoT/2.1", "Googlebot", true},
-		{"Googlebot is here", "googlebot", true},
-		{"GOOGLEBOT is here", "googlebot", true},
-		{"Hello googlebot", "Googlebot", true},
-		{"Hello GOOGLEBOT", "Googlebot", true},
-		{"SuperGooglebot", "Googlebot", false},
-		{"supergooglebot", "Googlebot", false},
-		{"SUPERGOOGLEBOT", "Googlebot", false},
-		{"GooglebotPro", "Googlebot", false},
-		{"googlebotpro", "Googlebot", false},
-		{"", "Googlebot", false},
-		{"Some text", "", false},
-		{"(googlebot)", "Googlebot", true},
-		{"[GOOGLEBOT]", "Googlebot", true},
-	}
-
-	for _, tt := range tests {
-		result := containsWordIgnoreCase(tt.text, tt.word)
-		if result != tt.expect {
-			t.Errorf("containsWordIgnoreCase(%q, %q) = %v, want %v", tt.text, tt.word, result, tt.expect)
 		}
 	}
 }

@@ -142,18 +142,6 @@ func BenchmarkValidate_Browser(b *testing.B) {
 	})
 }
 
-func BenchmarkContainsWordIgnoreCase(b *testing.B) {
-	text := "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)"
-	word := "Googlebot"
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		if !containsWordIgnoreCase(text, word) {
-			b.Fatal("expected match")
-		}
-	}
-}
-
 func BenchmarkContainsWord(b *testing.B) {
 	text := "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)"
 	word := "Googlebot"

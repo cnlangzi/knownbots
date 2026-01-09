@@ -13,20 +13,9 @@ const (
 	Unknown    BrowserKind = "unknown"    // Not browser-like
 )
 
-// Rendering engines - core browser engine identifiers.
-// Presence with valid UA structure indicates a browser.
-var browserEngines = []string{
-	"AppleWebKit", // WebKit (Chrome, Safari, Edge, Brave, Vivaldi, all iOS browsers)
-	"Gecko",       // Firefox and forks (Firefox, SeaMonkey, Pale Moon, etc.)
-	"Trident",     // Internet Explorer (legacy)
-	"Presto",      // Opera (pre-Chromium, legacy)
-	"Goanna",      // Pale Moon family (Gecko fork)
-}
-
 // Browser product names - specific browser identifiers in UA strings.
 // Checked in addition to rendering engines for comprehensive coverage.
 var browserProducts = []string{
-	"Mozilla", // Core browser prefix (standalone catches partial UAs)
 	// Global mainstream
 	"Chrome/", "CriOS/", "Safari/", "Mobile Safari",
 	"Firefox/", "FxiOS/", "Edg/", "EdgA/", "EdgiOS/",
@@ -52,61 +41,103 @@ var browserProducts = []string{
 	"Comodo_Dragon/", "Comodo Dragon", "Iron/", "LibreWolf/",
 	"Iceweasel/", "IceCat/", "SeaMonkey/", "Epiphany/",
 	"Midori/", "Konqueror/", "Silk/",
-	// Mobile platforms
-	"Android", "Linux; U; Android",
 }
 
-// classifyUA categorizes a UserAgent into browser, suspicious, or unknown.
-// Uses all known browser patterns for comprehensive detection.
+// Rendering engines - core browser engine identifiers.
+// Keep as strong signals (typically appear with a version like "AppleWebKit/537.36").
+var browserEngines = []string{
+	"AppleWebKit/", // WebKit family (Chrome, Safari, Edge, Brave, Vivaldi, all iOS browsers)
+	"Gecko/",       // Firefox family (e.g. Gecko/20100101)
+	"Trident/",     // Internet Explorer (legacy)
+	"Presto/",      // Opera (pre-Chromium, legacy)
+	"Goanna/",      // Pale Moon family (Gecko fork)
+}
+
+func uaHasControlChars(ua string) bool {
+	for i := 0; i < len(ua); i++ {
+		b := ua[i]
+		if b < 0x20 || b == 0x7f {
+			return true
+		}
+	}
+	return false
+}
+
+func uaParenInfo(ua string) (hasPair bool, balanceOK bool) {
+	bal := 0
+	seenLeft := false
+	escaped := false
+	for i := 0; i < len(ua); i++ {
+		if escaped {
+			escaped = false
+			continue
+		}
+		switch ua[i] {
+		case '\\':
+			escaped = true
+		case '(':
+			bal++
+			seenLeft = true
+		case ')':
+			bal--
+			if bal < 0 {
+				return false, false
+			}
+		}
+	}
+	if !seenLeft {
+		return false, true
+	}
+	// hasPair: at least one '(' and a matching ')' somewhere (balance ends at 0)
+	return true, bal == 0 && !escaped
+}
+
+func uaContainsAny(ua string, tokens []string) bool {
+	for _, token := range tokens {
+		if strings.Contains(ua, token) {
+			return true
+		}
+	}
+	return false
+}
+
 func classifyUA(ua string) BrowserKind {
 	if ua == "" {
 		return Unknown
 	}
 
-	// Check valid parentheses structure
-	parenStart := strings.Index(ua, "(")
-	parenEnd := strings.Index(ua, ")")
-	hasValidParens := parenStart != -1 && parenEnd != -1 && parenEnd > parenStart+1
+	hasPair, parenBalanceOK := uaParenInfo(ua)
+	hasValidParens := hasPair && parenBalanceOK
+	claimsMozilla := strings.HasPrefix(ua, "Mozilla")
 
-	// Check browser product presence
-	hasBrowserProduct := false
-	for _, product := range browserProducts {
-		if strings.Contains(ua, product) {
-			hasBrowserProduct = true
-			break
+	if claimsMozilla {
+		if uaHasControlChars(ua) {
+			return Suspicious
+		}
+		if !parenBalanceOK {
+			return Suspicious
+		}
+		if len(ua) < 16 {
+			return Suspicious
+		}
+		if !hasPair {
+			return Suspicious
 		}
 	}
 
-	// Check rendering engine presence
-	hasEngine := false
-	for _, engine := range browserEngines {
-		if strings.Contains(ua, engine) {
-			hasEngine = true
-			break
+	hasBrowserProduct := uaContainsAny(ua, browserProducts)
+	hasEngine := uaContainsAny(ua, browserEngines)
+
+	if hasBrowserProduct || hasEngine {
+		if !hasValidParens {
+			return Suspicious
 		}
+		return Browser
 	}
 
-	// Check Mozilla prefix (most browsers start with this)
-	hasMozillaPrefix := strings.HasPrefix(ua, "Mozilla/")
+	if claimsMozilla && hasValidParens {
+		return Suspicious
+	}
 
-	// Decision tree ordered by commonality and specificity
-	if hasBrowserProduct && hasValidParens {
-		return Browser
-	}
-	if hasEngine && hasValidParens {
-		return Browser
-	}
-	if hasMozillaPrefix && hasValidParens {
-		return Browser
-	}
-	if hasBrowserProduct {
-		return Suspicious
-	}
-	if hasEngine {
-		return Suspicious
-	}
-	if hasMozillaPrefix {
-		return Suspicious
-	}
 	return Unknown
 }

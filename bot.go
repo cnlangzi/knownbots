@@ -132,9 +132,8 @@ func parseCIDRs(cidrs []string) []IPPrefix {
 }
 
 // SetCustom atomically updates the custom IP list.
-func (b *Bot) SetCustom(cidrs []string) {
-	nets := parseCIDRs(cidrs)
-	b.custom.Store(nets)
+func (b *Bot) SetCustom(prefixes []netip.Prefix) {
+	b.custom.Store(prefixes)
 }
 
 // ContainsIP checks if the IP is in the bot's custom IP ranges.

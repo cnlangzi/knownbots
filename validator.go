@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/netip"
 	"os"
 	"path/filepath"
 	"sync/atomic"
@@ -202,8 +203,8 @@ func (v *Validator) runScheduler(httpClient *http.Client) {
 }
 
 // downloadIPs fetches IP ranges from URLs and parses using the bot's registered parser.
-func downloadIPs(httpClient *http.Client, bot *Bot) []string {
-	var allIPs []string
+func downloadIPs(httpClient *http.Client, bot *Bot) []netip.Prefix {
+	var allPrefixes []netip.Prefix
 	p := parser.Get(bot.Parser)
 
 	for _, url := range bot.URLs {
@@ -217,18 +218,18 @@ func downloadIPs(httpClient *http.Client, bot *Bot) []string {
 			continue
 		}
 
-		cidrs, err := p.Parse(resp.Body)
+		prefixes, err := p.Parse(resp.Body)
 		if err != nil {
 			log.Printf("[knownbots] failed to parse IPs from %s: %v", url, err)
 			continue
 		}
-		allIPs = append(allIPs, cidrs...)
+		allPrefixes = append(allPrefixes, prefixes...)
 	}
-	return allIPs
+	return allPrefixes
 }
 
 // writeIPs persists IP ranges to file (failure is OK).
-func writeIPs(path string, ips []string) {
+func writeIPs(path string, prefixes []netip.Prefix) {
 	err := os.MkdirAll(filepath.Dir(path), 0755)
 	if err != nil {
 		return
@@ -240,8 +241,8 @@ func writeIPs(path string, ips []string) {
 	defer f.Close()
 
 	w := bufio.NewWriter(f)
-	for _, ip := range ips {
-		if _, err := fmt.Fprintln(w, ip); err != nil {
+	for _, prefix := range prefixes {
+		if _, err := fmt.Fprintln(w, prefix.String()); err != nil {
 			return
 		}
 	}
