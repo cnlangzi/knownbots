@@ -711,7 +711,7 @@ When adding a new bot configuration:
 
 ## Author
 
-**cnlangzi** - [GitHub](https://github.com/cnlangzi)
+**Dayi Chen** - [GitHub](https://github.com/cnlangzi)
 
 ## Acknowledgments
 
