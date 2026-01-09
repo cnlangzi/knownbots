@@ -3,7 +3,7 @@
 # JSON format: https://openai.com/oai-searchbot.json
 kind: AiAssist
 name: oai-searchbot
-parser: openai
+parser: google
 ua: "OAI-SearchBot"
 urls:
   - "https://openai.com/oai-searchbot.json"

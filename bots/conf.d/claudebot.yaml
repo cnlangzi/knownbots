@@ -3,7 +3,7 @@
 # JSON format: https://ip-ranges.anthropic.com/claude.json
 kind: AiTraining
 name: claudebot
-parser: openai
+parser: google
 ua: "ClaudeBot"
 urls:
   - "https://ip-ranges.anthropic.com/claude.json"

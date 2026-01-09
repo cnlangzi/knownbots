@@ -20,25 +20,21 @@ func (p *StripeParser) Parse(r io.Reader) ([]netip.Prefix, error) {
 	}
 
 	var result struct {
-		Webhooks []struct {
-			IPV4Prefixes []struct {
-				Prefix string `json:"ipv4_prefix"`
-			} `json:"ipv4_prefixes"`
-		} `json:"webhooks"`
+		WEBHOOKS []string `json:"WEBHOOKS"`
 	}
 	if err := json.Unmarshal(data, &result); err != nil {
 		return nil, fmt.Errorf("failed to parse stripe json: %w", err)
 	}
 
 	var prefixes []netip.Prefix
-	for _, wh := range result.Webhooks {
-		for _, pfx := range wh.IPV4Prefixes {
-			if pfx.Prefix != "" {
-				prefix, err := netip.ParsePrefix(pfx.Prefix)
-				if err == nil {
-					prefixes = append(prefixes, prefix)
-				}
-			}
+	for _, ip := range result.WEBHOOKS {
+		if ip == "" {
+			continue
+		}
+		addr, err := netip.ParseAddr(ip)
+		if err == nil {
+			prefix := netip.PrefixFrom(addr, addr.BitLen())
+			prefixes = append(prefixes, prefix)
 		}
 	}
 	return prefixes, nil
