@@ -8,8 +8,4 @@ ua: "bingbot"
 urls:
   - "https://www.bing.com/toolbox/bingbot.json"
 custom: []
-domains:
-  - "bing.com"
-  - "microsoft.com"
-  - "search.msn.com"
 rdns: false
