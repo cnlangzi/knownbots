@@ -114,24 +114,49 @@ This ensures accurate, up-to-date information from official sources.
 
 ## Directory Structure
 
-- `/`: Root package code (`knownbots.go`, `validator.go`).
+- `/`: Root package code (`knownbots.go`, `validator.go`, `ua.go`).
 - `bots/`: Configuration for known bots.
   - `conf.d/`: YAML configuration files for individual bots.
 - `parser/`: IP range parser implementations.
   - `parser.go` - Parser interface and registry
-  - `parser_*.go` - Individual parser implementations
+  - `parser_google.go` - Google-style JSON parser (ipv4Prefix/ipv6Prefix)
+  - `parser_openai.go` - OpenAI-style JSON parser (prefix field)
+  - `parser_stripe.go` - Stripe webhook IP parser
+  - `parser_github.go` - GitHub API IP parser
+  - `parser_txt.go` - Plain text line-by-line parser
 - `tasks/`: Task definitions or documentation.
 
 ## Bot Configuration
 
 Bot definitions are stored in YAML files within `bots/conf.d/`.
 Each file should define:
-- `name`: Unique identifier for the bot.
-- `ua`: User-Agent string fragment to match.
-- `ips`: List of CIDR ranges for the bot's IPs.
-- `domains`: List of verified domains.
-- `urls`: List of URLs to fetch IP lists (optional).
-- `extra`: Additional IP ranges (optional).
+
+```yaml
+kind: SearchEngine        # Bot category (SearchEngine, SocialMedia, Tool, etc.)
+name: googlebot           # Unique identifier for the bot
+parser: google            # Parser name: google, openai, txt, github, stripe
+ua: "Googlebot"           # User-Agent string fragment (case-sensitive)
+urls:                     # List of URLs to fetch IP lists (auto-downloaded)
+  - "https://www.gstatic.com/ipranges/google.json"
+custom: []                # Static CIDR ranges (optional, for backup IPs)
+domains: []               # Verified RDNS domains (only if rdns: true)
+rdns: false               # Enable RDNS verification (default: false, use URLs instead)
+```
+
+### Available Parsers
+
+| Parser | JSON Structure | Example Bots |
+|--------|---------------|--------------|
+| `google` | `{prefixes: [{ipv4Prefix, ipv6Prefix}]}` | Googlebot, Bingbot |
+| `openai` | `{prefixes: [{prefix}]}` | GPTBot, ClaudeBot |
+| `txt` | Plain text, one CIDR per line | UptimeRobot |
+| `github` | `{hooks, importer, web}` | GitHub webhooks |
+| `stripe` | `{webhooks: {ipv4, ipv6}}` | Stripe webhooks |
+
+**Key Principles**:
+- Use `urls` + `rdns: false` (or omit rdns) for bots with official JSON IP lists
+- Use `domains` + `rdns: true` only for bots without official IP lists (Baidu, Yandex, etc.)
+- Empty fields (`custom: []`, `rdns: false`) should be omitted (default values)
 
 ## Cursor & Copilot Rules
 

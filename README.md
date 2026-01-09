@@ -154,9 +154,181 @@ rdns: true                             # Enable RDNS verification (false = IP-on
 
 ### Adding New Bots
 
-1. Create `bots/conf.d/newbot.yaml` with bot configuration
-2. Reload validator: `v.Reload("./bots")` (or restart application)
-3. No code changes required!
+Adding a new bot requires **no code changes** - just create a YAML configuration file.
+
+#### Step 1: Choose Verification Method
+
+| Method | When to Use | Example |
+|--------|-------------|---------|
+| **URL + Parser** | Bot has official JSON/TXT IP list | Googlebot, Bingbot, GPTBot |
+| **RDNS Only** | No official IP list, verify via DNS | Baidu, Yandex |
+
+#### Step 2: Create Configuration File
+
+Create `bots/conf.d/newbot.yaml`:
+
+```yaml
+# Case 1: Bot with official JSON IP list (RECOMMENDED)
+kind: SearchEngine        # Category: SearchEngine, SocialMedia, Tool, etc.
+name: newbot              # Unique identifier (used in results)
+parser: google            # Parser: google, openai, txt, github, stripe
+ua: "NewBot"              # User-Agent fragment (case-sensitive!)
+urls:
+  - "https://example.com/bot-ips.json"
+
+# Case 2: Bot with RDNS verification only (no official IP list)
+kind: SearchEngine
+name: newbot
+ua: "NewBot"
+domains:
+  - "newbot.example.com"
+rdns: true
+```
+
+#### Step 3: Configure Parser
+
+Choose the correct parser based on the IP list format:
+
+**Google-style** (`ipv4Prefix`/`ipv6Prefix` fields):
+```json
+{"prefixes": [{"ipv4Prefix": "1.2.3.4/24"}, {"ipv6Prefix": "2001:db8::/32"}]}
+```
+Parser: `google`
+
+**OpenAI-style** (`prefix` field):
+```json
+{"prefixes": [{"prefix": "1.2.3.4/24"}]}
+```
+Parser: `openai`
+
+**Plain text** (one CIDR per line):
+```
+1.2.3.4/24
+5.6.7.8/24
+```
+Parser: `txt` (default fallback)
+
+**GitHub-style** (`hooks`, `importer`, `web` fields):
+```json
+{"hooks": {"cidr": ["1.2.3.4/24"]}, "web": {"cidr": ["5.6.7.8/24"]}}
+```
+Parser: `github`
+
+**Stripe-style** (`webhooks.ipv4`/`webhooks.ipv6`):
+```json
+{"webhooks": {"ipv4": ["1.2.3.4/24"], "ipv6": ["2001:db8::/32"]}}
+```
+Parser: `stripe`
+
+#### Step 4: User-Agent Matching Rules
+
+1. **Case-sensitive**: Use exact casing from official documentation
+   - ✅ Correct: `ua: "Googlebot"` or `ua: "bingbot"`
+   - ❌ Wrong: `ua: "googlebot"` or `ua: "BINGBOT"`
+
+2. **Match type**: Word boundary matching (not substring)
+   - `ua: "Googlebot"` matches: `Googlebot/2.1`, `Mozilla/5.0 (compatible; Googlebot/2.1; ...)`
+   - `ua: "Googlebot"` does NOT match: `MyGooglebot`, `GooglebotPro`
+
+3. **Special bots**: Some bots don't use Mozilla prefix
+   - `ua: "GPTBot"` (OpenAI)
+   - `ua: "curl"` (CLI tool)
+
+#### Step 5: Reload Configuration
+
+```go
+// Hot reload without restart
+v.Reload("./bots")
+```
+
+#### Step 6: Verify
+
+```go
+result := v.Validate(
+    "Mozilla/5.0 (compatible; NewBot/1.0; +https://example.com/bot)",
+    "1.2.3.4",
+)
+
+fmt.Printf("Status: %s\n", result.Status)      // "verified"
+fmt.Printf("IsBot: %t\n", result.IsBot)        // true
+fmt.Printf("IsVerified: %t\n", result.IsVerified) // true
+```
+
+#### Example Configurations
+
+**Googlebot (official JSON, fast verification)**:
+```yaml
+kind: SearchEngine
+name: googlebot
+parser: google
+ua: "Googlebot"
+urls:
+  - "https://www.gstatic.com/ipranges/google.json"
+```
+
+**Bingbot (official JSON)**:
+```yaml
+kind: SearchEngine
+name: bingbot
+parser: google
+ua: "bingbot"
+urls:
+  - "https://www.bing.com/toolbox/bingbot.json"
+```
+
+**GPTBot (OpenAI-style JSON)**:
+```yaml
+kind: AiTraining
+name: gptbot
+parser: openai
+ua: "GPTBot"
+urls:
+  - "https://openai.com/gptbot.json"
+```
+
+**Baidu (RDNS only, no official IP list)**:
+```yaml
+kind: SearchEngine
+name: baiduspider
+ua: "Baiduspider"
+domains:
+  - "baidu.com"
+  - "baidu.jp"
+rdns: true
+```
+
+**Yandex (RDNS only)**:
+```yaml
+kind: SearchEngine
+name: yandexbot
+ua: "YandexBot"
+domains:
+  - "yandex.com"
+  - "yandex.ru"
+rdns: true
+```
+
+#### Common Mistakes
+
+| Mistake | Problem | Solution |
+|---------|---------|----------|
+| Wrong casing | "googlebot" won't match "Googlebot/2.1" | Use exact casing: "Googlebot" |
+| Wrong parser | JSON not parsed correctly | Match parser to JSON structure |
+| Missing `rdns: true` | RDNS verification not performed | Add `rdns: true` for DNS-based bots |
+| Empty `custom: []` | Unnecessary configuration | Omit empty fields |
+
+#### Testing New Bot Config
+
+```bash
+# Validate YAML syntax
+go run -e 'yaml' ./bots/conf.d/newbot.yaml
+
+# Test bot matching
+go test -v -run TestValidator
+
+# Check IP parsing
+curl -s https://example.com/bot-ips.json | jq '.prefixes[0]'
+```
 
 ## How It Works
 
