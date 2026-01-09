@@ -6,4 +6,4 @@ name: applebot
 parser: google
 ua: "Applebot"
 urls:
-  - "https://search.apple.com/applebot.json"
+  - "https://search.developer.apple.com/applebot.json"

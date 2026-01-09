@@ -3,13 +3,13 @@
 [![Go Reference](https://pkg.go.dev/badge/github.com/cnlangzi/knownbots.svg)](https://pkg.go.dev/github.com/cnlangzi/knownbots)
 [![Go Report Card](https://goreportcard.com/badge/github.com/cnlangzi/knownbots)](https://goreportcard.com/report/github.com/cnlangzi/knownbots)
 
-**knownbots** is a high-performance Go library for verifying search engine crawlers and identifying legitimate bots. It protects your web services from bot impersonation by validating User-Agent strings and IP addresses through RDNS lookups and IP range verification.
+**KnownBots** is a high-performance Go library for verifying search engine crawlers and identifying legitimate bots. It protects your web services from bot impersonation by validating User-Agent strings and IP addresses through RDNS lookups and IP range verification.
 
-## Why knownbots?
+## Why KnownBots?
 
 **The Problem**: Malicious actors can easily spoof User-Agent strings to impersonate legitimate search engine bots (Googlebot, Bingbot, etc.) to bypass rate limits, scrape content, or exploit bot-specific logic.
 
-**The Solution**: knownbots performs **cryptographic-strength verification** by:
+**The Solution**: KnownBots performs **cryptographic-strength verification** by:
 1. **Matching User-Agent markers** (case-sensitive word boundaries)
 2. **Verifying IP ownership** through reverse DNS lookups or official IP ranges
 3. **Caching results** to avoid expensive DNS queries on subsequent requests

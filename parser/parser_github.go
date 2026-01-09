@@ -20,35 +20,36 @@ func (p *GitHubParser) Parse(r io.Reader) ([]netip.Prefix, error) {
 	}
 
 	var result struct {
-		Hooks []struct {
-			IPV4Prefixes []struct {
-				Prefix string `json:"prefix"`
-			} `json:"ip_v4_prefixes"`
-			IPV6Prefixes []struct {
-				Prefix string `json:"prefix"`
-			} `json:"ip_v6_prefixes"`
-		} `json:"hooks"`
+		Hooks []string `json:"hooks"`
+		Web   []string `json:"web"`
+		API   []string `json:"api"`
 	}
 	if err := json.Unmarshal(data, &result); err != nil {
 		return nil, fmt.Errorf("failed to parse github json: %w", err)
 	}
 
 	var prefixes []netip.Prefix
-	for _, hook := range result.Hooks {
-		for _, pfx := range hook.IPV4Prefixes {
-			if pfx.Prefix != "" {
-				prefix, err := netip.ParsePrefix(pfx.Prefix)
-				if err == nil {
-					prefixes = append(prefixes, prefix)
-				}
+	for _, cidr := range result.Hooks {
+		if cidr != "" {
+			prefix, err := netip.ParsePrefix(cidr)
+			if err == nil {
+				prefixes = append(prefixes, prefix)
 			}
 		}
-		for _, pfx := range hook.IPV6Prefixes {
-			if pfx.Prefix != "" {
-				prefix, err := netip.ParsePrefix(pfx.Prefix)
-				if err == nil {
-					prefixes = append(prefixes, prefix)
-				}
+	}
+	for _, cidr := range result.Web {
+		if cidr != "" {
+			prefix, err := netip.ParsePrefix(cidr)
+			if err == nil {
+				prefixes = append(prefixes, prefix)
+			}
+		}
+	}
+	for _, cidr := range result.API {
+		if cidr != "" {
+			prefix, err := netip.ParsePrefix(cidr)
+			if err == nil {
+				prefixes = append(prefixes, prefix)
 			}
 		}
 	}
