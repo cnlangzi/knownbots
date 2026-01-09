@@ -1,13 +1,15 @@
 # Bingbot - Microsoft Bing search engine crawler
-# https://www.bing.com/help/learning about bingbots
+# https://www.bing.com/webmasters/help/verify-bingbot-2195837f
+# JSON format: https://www.bing.com/toolbox/bingbot.json
 kind: SearchEngine
 name: bingbot
 parser: google
 ua: "bingbot"
 urls:
-  - "https://www.bing.com/robots.txt"
+  - "https://www.bing.com/toolbox/bingbot.json"
 custom: []
 domains:
   - "bing.com"
   - "microsoft.com"
+  - "search.msn.com"
 rdns: true
