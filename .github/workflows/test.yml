@@ -24,13 +24,13 @@ jobs:
           cache: true
 
       - name: Run unit tests
-        run: go test -short ./... -race -coverprofile=coverage.out -covermode=atomic
+        run: go test -short ./... -race -coverprofile=coverage.txt -covermode=atomic
 
-      - name: Upload coverage
-        uses: codecov/codecov-action@v4
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
         with:
-          files: ./coverage.out
-          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: cnlangzi/knownbots
 
   benchmark:
     name: Run Benchmarks
@@ -107,9 +107,33 @@ jobs:
             comment += '- ✅ Linear scaling with CPUs (lock-free reads)\n';
             comment += '- ⚡ ContainsIP: ~9-10ns/op (fastest path)\n';
             
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
+            // Find existing benchmark comment
+            const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: comment
+              issue_number: context.issue.number,
             });
+            
+            const botComment = comments.find(c => 
+              c.user.type === 'Bot' && c.body.startsWith('## Benchmark Results')
+            );
+            
+            if (botComment) {
+              // Update existing comment
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: comment
+              });
+              console.log('Updated existing benchmark comment');
+            } else {
+              // Create new comment
+              await github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: comment
+              });
+              console.log('Created new benchmark comment');
+            }
