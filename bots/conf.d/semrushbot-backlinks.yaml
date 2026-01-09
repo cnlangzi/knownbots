@@ -1,8 +1,9 @@
-# Semrush SEO crawler (backlinks)
-# https://developers.cloudflare.com/bots/concepts/bot/verified-bots/
+# Semrush Backlink Audit crawler
+# Official UA: SemrushBot-BA (not SemrushBotBacklinks)
+# https://www.semrush.com/bot.html
 kind: SEO
-name: semrushbot-backlinks
-ua: "SemrushBotBacklinks"
+name: semrushbot-ba
+ua: "SemrushBot-BA"
 rdns: true
 domains:
   - "semrush.com"

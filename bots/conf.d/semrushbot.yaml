@@ -1,8 +1,9 @@
-# Semrush general crawler
-# https://developers.cloudflare.com/bots/concepts/bot/verified-bots/
+# Semrush main crawler
+# Official UA: SemrushBot (S and B must be uppercase)
+# https://www.semrush.com/bot.html
 kind: SEO
 name: semrushbot
-ua: "Semrushbot"
+ua: "SemrushBot"
 rdns: true
 domains:
   - "semrush.com"
