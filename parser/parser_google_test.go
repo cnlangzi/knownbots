@@ -1,15 +1,24 @@
 package parser
 
 import (
+	"context"
 	"io"
 	"net/http"
 	"net/netip"
 	"strings"
 	"testing"
+	"time"
 )
 
 func fetchFromURL(url string) ([]byte, error) {
-	resp, err := http.Get(url)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, err
+	}
+	client := &http.Client{Timeout: 15 * time.Second}
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
 	}
