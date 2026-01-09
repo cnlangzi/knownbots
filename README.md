@@ -201,24 +201,25 @@ Parser: `google`
 ```
 Parser: `openai`
 
-**Plain text** (one CIDR per line):
+**Plain text** (one CIDR or individual IP per line):
 ```
 1.2.3.4/24
 5.6.7.8/24
+172.16.0.5
 ```
-Parser: `txt` (default fallback)
+Parser: `txt` (converts individual IPs to /32 or /128 CIDR notation)
 
-**GitHub-style** (`hooks`, `importer`, `web` fields):
+**GitHub-style** (`hooks`, `web`, `api` string arrays):
 ```json
-{"hooks": {"cidr": ["1.2.3.4/24"]}, "web": {"cidr": ["5.6.7.8/24"]}}
+{"hooks": ["192.30.252.0/22"], "web": ["192.30.252.0/22"], "api": ["192.30.252.0/22"]}
 ```
 Parser: `github`
 
-**Stripe-style** (`webhooks.ipv4`/`webhooks.ipv6`):
+**Stripe-style** (`WEBHOOKS` array with individual IPs):
 ```json
-{"webhooks": {"ipv4": ["1.2.3.4/24"], "ipv6": ["2001:db8::/32"]}}
+{"WEBHOOKS": ["3.18.12.63", "3.130.192.231", "13.235.14.237"]}
 ```
-Parser: `stripe`
+Parser: `stripe` (converts individual IPs to /32 or /128 CIDR notation)
 
 #### Step 4: User-Agent Matching Rules
 
@@ -276,14 +277,54 @@ urls:
   - "https://www.bing.com/toolbox/bingbot.json"
 ```
 
-**GPTBot (OpenAI-style JSON)**:
+**GPTBot (OpenAI uses Google-style JSON)**:
 ```yaml
 kind: AiTraining
 name: gptbot
-parser: openai
+parser: google
 ua: "GPTBot"
 urls:
   - "https://openai.com/gptbot.json"
+```
+
+**Applebot (official JSON from developer.apple.com)**:
+```yaml
+kind: SearchEngine
+name: applebot
+parser: google
+ua: "Applebot"
+urls:
+  - "https://search.developer.apple.com/applebot.json"
+```
+
+**GitHub Webhooks**:
+```yaml
+kind: Tool
+name: github
+parser: github
+ua: "GitHub-Hookshot"
+urls:
+  - "https://api.github.com/meta"
+```
+
+**Stripe Webhooks**:
+```yaml
+kind: Tool
+name: stripe
+parser: stripe
+ua: "Stripe"
+urls:
+  - "https://stripe.com/files/ips/ips_webhooks.json"
+```
+
+**UptimeRobot (plain text with individual IPs)**:
+```yaml
+kind: Monitoring
+name:uptimerobot
+parser: txt
+ua: "UptimeRobot"
+urls:
+  - "https://uptimerobot.com/inc/files/ips/IPv4.txt"
 ```
 
 **Baidu (RDNS only, no official IP list)**:
@@ -525,6 +566,11 @@ Current built-in configurations:
 - **Googlebot** (Google Search)
 - **Bingbot** (Microsoft Bing)
 - **facebookexternalhit** (Facebook/Meta link previews)
+- **GPTBot** (OpenAI)
+- **Applebot** (Apple Search and Siri)
+- **GitHub** (GitHub webhooks)
+- **Stripe** (Stripe webhooks)
+- **UptimeRobot** (Uptime monitoring)
 
 **Need more bots?** Add YAML configs to `bots/conf.d/` - no code changes required!
 
@@ -534,9 +580,6 @@ Current built-in configurations:
 - DuckDuckGo (DuckDuckBot)
 - Twitter (Twitterbot)
 - Slack (Slackbot)
-- OpenAI (GPTBot)
-- Anthropic (anthropic-ai)
-- Apple (Applebot)
 
 See [`bots/conf.d/googlebot.yaml`](bots/conf.d/googlebot.yaml) for configuration examples.
 
@@ -545,6 +588,9 @@ See [`bots/conf.d/googlebot.yaml`](bots/conf.d/googlebot.yaml) for configuration
 ```bash
 # Run all tests
 go test ./...
+
+# Run only unit tests (skip integration tests)
+go test -short ./...
 
 # Run benchmarks
 go test -bench=. -benchmem
@@ -555,6 +601,15 @@ go test -v -run ^TestValidator$
 # Coverage report
 go test -cover ./...
 ```
+
+**Integration Tests**: The project includes integration tests that verify parsing of real API responses from:
+- GoogleBot: 307 prefixes
+- Bingbot: 28 prefixes
+- GPTBot: 21 prefixes
+- GitHub: 50 prefixes
+- Stripe: 12 IPs
+- UptimeRobot: 116 prefixes
+- Applebot: 12 prefixes
 
 ## Architecture Decisions
 
