@@ -77,13 +77,13 @@ func TestStripeParserErrorHandling(t *testing.T) {
 		{
 			name:        "Wrong type for WEBHOOKS (object instead of array)",
 			input:       `{"WEBHOOKS": {"ip": "3.18.12.63"}}`,
-			expectError: false,
+			expectError: true,
 			expectedIPs: 0,
 		},
 		{
 			name:        "Wrong type for WEBHOOKS (string instead of array)",
 			input:       `{"WEBHOOKS": "3.18.12.63"}`,
-			expectError: false,
+			expectError: true,
 			expectedIPs: 0,
 		},
 		{
@@ -99,10 +99,10 @@ func TestStripeParserErrorHandling(t *testing.T) {
 			expectedIPs: 0,
 		},
 		{
-			name:        "Numbers instead of strings in array",
+			name:        "Numbers instead of strings in WEBHOOKS causes error",
 			input:       `{"WEBHOOKS": [3.18, "13.235.14.237"]}`,
-			expectError: false,
-			expectedIPs: 1,
+			expectError: true,
+			expectedIPs: 0,
 		},
 		{
 			name:        "Null in WEBHOOKS array",
