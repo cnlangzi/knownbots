@@ -1,6 +1,6 @@
 # Node.js axios HTTP client
 # Default User-Agent: axios/x.x.x
 # https://axios-http.com/
-kind: Tool
+kind: Scraper
 name: axios
 ua: "axios"

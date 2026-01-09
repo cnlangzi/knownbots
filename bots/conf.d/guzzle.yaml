@@ -1,6 +1,6 @@
 # PHP Guzzle HTTP client library
 # Default User-Agent: GuzzleHttp/x.x.x
 # https://docs.guzzlephp.org/
-kind: Tool
+kind: Scraper
 name: guzzle
 ua: "GuzzleHttp"

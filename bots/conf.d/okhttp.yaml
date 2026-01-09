@@ -1,6 +1,6 @@
 # Java OkHttp library
 # Default User-Agent: OkHttp/x.x.x
 # https://square.github.io/okhttp/
-kind: Tool
+kind: Scraper
 name: okhttp
 ua: "OkHttp"

@@ -1,7 +1,7 @@
 # GitHub - CI/CD and Webhook IPs
 # https://api.github.com/meta
 # JSON format: https://api.github.com/meta (hooks, importer, web fields)
-kind: Tool
+kind: Scraper
 name: github
 parser: github
 ua: "GitHub"

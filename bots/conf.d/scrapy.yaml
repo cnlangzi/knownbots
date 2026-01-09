@@ -1,6 +1,6 @@
 # Python Scrapy crawler
 # Default User-Agent: Scrapy/x.x.x (+https://scrapy.org)
 # https://scrapy.org/
-kind: Tool
+kind: Scraper
 name: scrapy
 ua: "Scrapy"

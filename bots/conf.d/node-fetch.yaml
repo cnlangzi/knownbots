@@ -1,6 +1,6 @@
 # Node.js node-fetch library
 # Default User-Agent: node-fetch/x.x
 # https://github.com/node-fetch/node-fetch
-kind: Tool
+kind: Scraper
 name: node-fetch
 ua: "node-fetch"

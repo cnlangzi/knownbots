@@ -1,6 +1,6 @@
 # Rust reqwest HTTP client library
 # Default User-Agent: reqwest/x.x.x
 # https://docs.rs/reqwest/
-kind: Tool
+kind: Scraper
 name: rust-reqwest
 ua: "reqwest"

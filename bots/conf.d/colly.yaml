@@ -1,6 +1,6 @@
 # Go Colly crawler
 # Default User-Agent: colly - https://github.com/gocolly/colly/v2
 # https://github.com/gocolly/colly
-kind: Tool
+kind: Scraper
 name: colly
 ua: "colly"
