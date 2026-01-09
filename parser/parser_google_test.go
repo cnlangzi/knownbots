@@ -2,6 +2,7 @@ package parser
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net/http"
 	"net/netip"
@@ -17,12 +18,15 @@ func fetchFromURL(url string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	client := &http.Client{Timeout: 15 * time.Second}
+	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
 	return io.ReadAll(resp.Body)
 }
 
