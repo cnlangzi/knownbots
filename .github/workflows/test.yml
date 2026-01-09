@@ -82,30 +82,59 @@ jobs:
           script: |
             const fs = require('fs');
             const output = fs.readFileSync('benchmark_output.txt', 'utf8');
-            
-            // Extract key metrics
             const lines = output.split('\n');
+            
             let comment = '## Benchmark Results\n\n';
             
-            comment += '### Validate (Hot Path)\n';
-            comment += '| CPUs | ns/op | QPS | Allocs |\n';
-            comment += '|------|-------|-----|--------|\n';
+            // Extract Validate benchmark results
+            const validateResults = [];
+            let containsIPns = null;
+            let findBotByUAns = null;
             
             for (const line of lines) {
               if (line.includes('BenchmarkValidate_WithBotUA')) {
-                const parts = line.split(/\s+/);
+                const parts = line.trim().split(/\s+/);
                 const cpu = parts[0].includes('-4') ? '4' : parts[0].includes('-8') ? '8' : '1';
                 const ns = parts[2];
-                const qps = Math.round(1e9 / parseInt(ns)).toLocaleString();
-                const allocs = parts.includes('0') ? '0' : parts[parts.length-2];
-                comment += `| ${cpu} | ${ns} | ~${qps}/s | ${allocs} |\n`;
+                const bPerOp = parts[4] || '0';
+                const allocs = parts[5] || '0';
+                validateResults.push({ cpu, ns, bPerOp, allocs });
+              }
+              if (line.includes('BenchmarkContainsIP')) {
+                const parts = line.trim().split(/\s+/);
+                containsIPns = parts[2];
+              }
+              if (line.includes('BenchmarkFindBotByUA')) {
+                const parts = line.trim().split(/\s+/);
+                findBotByUAns = parts[2];
               }
             }
             
-            comment += '\n### Key Observations\n';
-            comment += '- ✅ Zero allocations on hot path (no GC pressure)\n';
-            comment += '- ✅ Linear scaling with CPUs (lock-free reads)\n';
-            comment += '- ⚡ ContainsIP: ~9-10ns/op (fastest path)\n';
+            // Build comment
+            comment += '### Validate (Hot Path)\n';
+            comment += '| CPUs | ns/op | B/op | Allocs |';
+            comment += '\n|------|-------|------|--------|\n';
+            for (const r of validateResults) {
+              comment += `| ${r.cpu} | ${r.ns} | ${r.bPerOp} | ${r.allocs} |\n`;
+            }
+            
+            // Generate observations based on actual results
+            const observations = [];
+            if (validateResults.length > 0) {
+              const hasZeroAllocs = validateResults.every(r => r.allocs === '0');
+              if (hasZeroAllocs) {
+                observations.push('✅ Zero allocations on hot path (GC-free)');
+              }
+              if (containsIPns && findBotByUAns) {
+                const ratio = (parseInt(containsIPns) / parseInt(findBotByUAns)).toFixed(2);
+                observations.push(`⚡ ContainsIP is ${ratio}x faster than FindBotByUA`);
+              }
+            }
+            
+            if (observations.length > 0) {
+              comment += '\n### Observations\n';
+              comment += observations.join('\n') + '\n';
+            }
             
             // Find existing benchmark comment
             const { data: comments } = await github.rest.issues.listComments({
