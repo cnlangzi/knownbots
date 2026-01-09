@@ -1,0 +1,9 @@
+# Stripe - Payment webhook IPs
+# https://stripe.com/docs/ips/webhooks
+# JSON format: https://stripe.com/files/ips/ips_webhooks.json
+kind: Tool
+name: stripe
+parser: stripe
+ua: "Stripe"
+urls:
+  - "https://stripe.com/files/ips/ips_webhooks.json"

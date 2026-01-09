@@ -1,0 +1,9 @@
+# Applebot - Apple search and Siri crawler
+# https://support.apple.com/en-us/HT204683
+# JSON format: https://search.apple.com/applebot.json
+kind: Search
+name: applebot
+parser: google
+ua: "Applebot"
+urls:
+  - "https://search.apple.com/applebot.json"

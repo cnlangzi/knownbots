@@ -1,0 +1,9 @@
+# Google Special - Google special purpose crawlers
+# https://developers.google.com/static/search/apis/ipranges/special-crawlers.json
+# JSON format: Contains AdsBot, FeedFetcher, MediaPartners-Google, etc.
+kind: Monitor
+name: google-special
+parser: google
+ua: "AdsBot"
+urls:
+  - "https://developers.google.com/static/search/apis/ipranges/special-crawlers.json"

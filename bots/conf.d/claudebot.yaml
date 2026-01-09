@@ -1,0 +1,9 @@
+# ClaudeBot - Anthropic AI training crawler
+# https://docs.anthropic.com/en/docs/about-claude/geo-permitted-requests
+# JSON format: https://ip-ranges.anthropic.com/claude.json
+kind: AiTraining
+name: claudebot
+parser: openai
+ua: "ClaudeBot"
+urls:
+  - "https://ip-ranges.anthropic.com/claude.json"

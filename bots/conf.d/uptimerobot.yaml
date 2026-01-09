@@ -1,0 +1,9 @@
+# UptimeRobot - Monitoring service
+# https://uptimerobot.com/inc/files/ips/IPv4.txt
+# TXT format: Plain text, one CIDR per line
+kind: Monitor
+name: uptimerobot
+parser: txt
+ua: "UptimeRobot"
+urls:
+  - "https://uptimerobot.com/inc/files/ips/IPv4.txt"
