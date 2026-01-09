@@ -1,6 +1,6 @@
 # Python aiohttp library
 # Default User-Agent: Python/aiohttp/x.xx.x
 # https://docs.aiohttp.org/
-kind: Tool
+kind: Scraper
 name: python-aiohttp
 ua: "Python/aiohttp"

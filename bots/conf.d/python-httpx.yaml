@@ -1,6 +1,6 @@
 # Python httpx library
 # Default User-Agent: python-httpx/x.x.x
 # https://www.python-httpx.org/
-kind: Tool
+kind: Scraper
 name: python-httpx
 ua: "python-httpx"

@@ -1,6 +1,6 @@
 # Node.js got HTTP client library
 # Default User-Agent: got/x.x.x
 # https://github.com/sindresorhus/got
-kind: Tool
+kind: Scraper
 name: got
 ua: "got"

@@ -1,6 +1,6 @@
 # Go resty HTTP client library
 # Default User-Agent: go-resty/x.x.x (https://github.com/go-resty/resty)
 # https://github.com/go-resty/resty
-kind: Tool
+kind: Scraper
 name: go-resty
 ua: "go-resty"

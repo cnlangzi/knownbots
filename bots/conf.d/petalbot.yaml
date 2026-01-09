@@ -1,0 +1,8 @@
+# Huawei AI crawler
+# https://developers.cloudflare.com/bots/concepts/bot/verified-bots/
+kind: AITraining
+name: petalbot
+ua: "PetalBot"
+rdns: true
+domains:
+  - "petalbot.com"

@@ -1,6 +1,6 @@
 # Python requests library
 # Default User-Agent: python-requests/x.xx.x
 # https://docs.python-requests.org/
-kind: Tool
+kind: Scraper
 name: python-requests
 ua: "python-requests"

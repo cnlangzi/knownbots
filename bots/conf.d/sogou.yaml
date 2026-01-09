@@ -1,7 +1,7 @@
 # Sogou - Sogou search crawler
 # https://www.sogou.com/docs/help/webmasters.htm#04
 # Verification: RDNS (no official IP list available)
-kind: Search
+kind: SearchEngine
 name: sogou
 ua: "Sogou"
 domains:

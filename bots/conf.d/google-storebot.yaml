@@ -1,0 +1,8 @@
+# Google StoreBot (SEO tool)
+# https://developers.cloudflare.com/bots/concepts/bot/verified-bots/
+kind: SEO
+name: google-storebot
+ua: "GoogleStoreBot"
+rdns: true
+domains:
+  - "google.com"

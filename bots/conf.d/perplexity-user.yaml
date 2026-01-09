@@ -1,0 +1,8 @@
+# Perplexity AI user agent
+# https://developers.cloudflare.com/bots/concepts/bot/verified-bots/
+kind: AIAssist
+name: perplexity-user
+ua: "Perplexity-User"
+rdns: true
+domains:
+  - "perplexity.ai"

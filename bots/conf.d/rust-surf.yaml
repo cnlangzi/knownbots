@@ -1,6 +1,6 @@
 # Rust surf HTTP client library
 # Default User-Agent: surf/x.x.x
 # https://docs.rs/surf/
-kind: Tool
+kind: Scraper
 name: rust-surf
 ua: "surf"

@@ -1,6 +1,6 @@
 # PHP cURL library
 # Default User-Agent: curl/x.x.x
 # https://www.php.net/manual/en/book.curl.php
-kind: Tool
+kind: Scraper
 name: php-curl
 ua: "curl"

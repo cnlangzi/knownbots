@@ -1,6 +1,6 @@
 # Go net/http default client
 # Default User-Agent: Go-http-client/x.x or Go/x.x
 # https://golang.org/pkg/net/http/
-kind: Tool
+kind: Scraper
 name: go-http-client
 ua: "Go-http-client"

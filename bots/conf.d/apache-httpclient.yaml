@@ -1,6 +1,6 @@
 # Java Apache HttpClient
 # Default User-Agent: Apache-HttpClient/x.x (Java/x.x.x)
 # https://hc.apache.org/
-kind: Tool
+kind: Scraper
 name: apache-httpclient
 ua: "Apache-HttpClient"

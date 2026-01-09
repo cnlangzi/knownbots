@@ -27,7 +27,7 @@ const (
 	KindSEO          BotKind = "SEO"          // SEO backlink analyzers (AhrefsBot, SemrushBot)
 	KindMonitor      BotKind = "Monitor"      // Uptime/ad verification (Pingdom, AdsBot)
 	KindSecurity     BotKind = "Security"     // Security scanners (Censys, Shodan)
-	KindScraper      BotKind = "Scraper"      // Content/price scrapers
+	KindScraper      BotKind = "Scraper"      // Content/price scrapers, HTTP client libraries and CLI tools
 	KindUnknown      BotKind = "Unknown"      // Unclassified
 )
 

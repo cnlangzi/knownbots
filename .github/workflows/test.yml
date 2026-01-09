@@ -24,13 +24,13 @@ jobs:
           cache: true
 
       - name: Run unit tests
-        run: go test ./... -race -coverprofile=coverage.out -covermode=atomic
+        run: go test -short ./... -race -coverprofile=coverage.txt -covermode=atomic
 
-      - name: Upload coverage
-        uses: codecov/codecov-action@v4
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
         with:
-          files: ./coverage.out
-          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: cnlangzi/knownbots
 
   benchmark:
     name: Run Benchmarks
@@ -82,34 +82,46 @@ jobs:
           script: |
             const fs = require('fs');
             const output = fs.readFileSync('benchmark_output.txt', 'utf8');
-            
-            // Extract key metrics
+
+            // Extract benchmark results section (skip goos/goarch/cpu lines)
             const lines = output.split('\n');
+            const benchmarkLines = lines.filter(line =>
+              line.startsWith('Benchmark') || line.startsWith('PASS') || line.startsWith('ok')
+            );
+
+            // Build comment with raw output
             let comment = '## Benchmark Results\n\n';
-            
-            comment += '### Validate (Hot Path)\n';
-            comment += '| CPUs | ns/op | QPS | Allocs |\n';
-            comment += '|------|-------|-----|--------|\n';
-            
-            for (const line of lines) {
-              if (line.includes('BenchmarkValidate_WithBotUA')) {
-                const parts = line.split(/\s+/);
-                const cpu = parts[0].includes('-4') ? '4' : parts[0].includes('-8') ? '8' : '1';
-                const ns = parts[2];
-                const qps = Math.round(1e9 / parseInt(ns)).toLocaleString();
-                const allocs = parts.includes('0') ? '0' : parts[parts.length-2];
-                comment += `| ${cpu} | ${ns} | ~${qps}/s | ${allocs} |\n`;
-              }
-            }
-            
-            comment += '\n### Key Observations\n';
-            comment += '- ✅ Zero allocations on hot path (no GC pressure)\n';
-            comment += '- ✅ Linear scaling with CPUs (lock-free reads)\n';
-            comment += '- ⚡ ContainsIP: ~9-10ns/op (fastest path)\n';
-            
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
+            comment += '```\n';
+            comment += benchmarkLines.join('\n');
+            comment += '\n```\n';
+
+            // Find existing benchmark comment
+            const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: comment
+              issue_number: context.issue.number,
             });
+
+            const botComment = comments.find(c =>
+              c.user.type === 'Bot' && c.body.startsWith('## Benchmark Results')
+            );
+
+            if (botComment) {
+              // Update existing comment
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: comment
+              });
+              console.log('Updated existing benchmark comment');
+            } else {
+              // Create new comment
+              await github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: comment
+              });
+              console.log('Created new benchmark comment');
+            }
