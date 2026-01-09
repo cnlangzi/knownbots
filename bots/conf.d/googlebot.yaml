@@ -1,0 +1,10 @@
+name: googlebot
+ua: "Googlebot"
+urls:
+  - "https://www.gstatic.com/ipranges/google.json"
+custom:
+  - "66.249.64.0/19"
+domains:
+  - "googlebot.com"
+  - "google.com"
+rdns: true

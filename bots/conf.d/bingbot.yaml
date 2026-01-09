@@ -1,0 +1,9 @@
+name: bingbot
+ua: "bingbot"
+urls:
+  - "https://www.bing.com/robots.txt"
+custom: []
+domains:
+  - "bing.com"
+  - "microsoft.com"
+rdns: true

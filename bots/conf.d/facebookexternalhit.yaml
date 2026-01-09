@@ -1,0 +1,9 @@
+name: facebookexternalhit
+ua: "facebookexternalhit"
+urls: []
+custom:
+  - "31.13.24.0/21"
+domains:
+  - "facebook.com"
+  - "fbcdn.net"
+rdns: false
