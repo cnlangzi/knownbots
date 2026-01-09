@@ -1,0 +1,7 @@
+# Java OkHttp library
+# Default User-Agent: OkHttp/x.x.x
+# https://square.github.io/okhttp/
+kind: Tool
+name: okhttp
+ua: "OkHttp"
+rdns: true

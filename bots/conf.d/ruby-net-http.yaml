@@ -1,0 +1,7 @@
+# Ruby Net::HTTP library
+# Default User-Agent: Ruby/x.x.x
+# https://ruby-doc.org/stdlib-3.0.0/libdoc/net/http/rdoc/Net/HTTP.html
+kind: Tool
+name: ruby-net-http
+ua: "Ruby"
+rdns: true

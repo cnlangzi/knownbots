@@ -1,0 +1,7 @@
+# Python aiohttp library
+# Default User-Agent: Python/aiohttp/x.xx.x
+# https://docs.aiohttp.org/
+kind: Tool
+name: python-aiohttp
+ua: "Python/aiohttp"
+rdns: true

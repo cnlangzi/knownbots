@@ -1,0 +1,7 @@
+# Ruby Faraday HTTP client library
+# Default User-Agent: Faraday/x.x.x
+# https://lostisland.github.io/faraday/
+kind: Tool
+name: ruby-faraday
+ua: "Faraday"
+rdns: true

@@ -1,0 +1,7 @@
+# Python Scrapy crawler
+# Default User-Agent: Scrapy/x.x.x (+https://scrapy.org)
+# https://scrapy.org/
+kind: Tool
+name: scrapy
+ua: "Scrapy"
+rdns: true

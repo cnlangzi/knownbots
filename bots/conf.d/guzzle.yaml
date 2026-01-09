@@ -1,0 +1,7 @@
+# PHP Guzzle HTTP client library
+# Default User-Agent: GuzzleHttp/x.x.x
+# https://docs.guzzlephp.org/
+kind: Tool
+name: guzzle
+ua: "GuzzleHttp"
+rdns: true

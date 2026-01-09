@@ -1,0 +1,7 @@
+# Rust reqwest HTTP client library
+# Default User-Agent: reqwest/x.x.x
+# https://docs.rs/reqwest/
+kind: Tool
+name: rust-reqwest
+ua: "reqwest"
+rdns: true

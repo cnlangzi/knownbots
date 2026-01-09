@@ -1,0 +1,7 @@
+# PHP cURL library
+# Default User-Agent: curl/x.x.x
+# https://www.php.net/manual/en/book.curl.php
+kind: Tool
+name: php-curl
+ua: "curl"
+rdns: true
