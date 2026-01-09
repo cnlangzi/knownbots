@@ -4,4 +4,3 @@
 kind: Tool
 name: ruby-faraday
 ua: "Faraday"
-rdns: true

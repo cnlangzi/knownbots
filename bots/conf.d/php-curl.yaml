@@ -4,4 +4,3 @@
 kind: Tool
 name: php-curl
 ua: "curl"
-rdns: true

@@ -4,4 +4,3 @@
 kind: Tool
 name: scrapy
 ua: "Scrapy"
-rdns: true

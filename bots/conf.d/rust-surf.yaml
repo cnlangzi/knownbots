@@ -4,4 +4,3 @@
 kind: Tool
 name: rust-surf
 ua: "surf"
-rdns: true

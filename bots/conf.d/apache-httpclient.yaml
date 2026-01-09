@@ -4,4 +4,3 @@
 kind: Tool
 name: apache-httpclient
 ua: "Apache-HttpClient"
-rdns: true

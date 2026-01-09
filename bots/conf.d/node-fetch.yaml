@@ -4,4 +4,3 @@
 kind: Tool
 name: node-fetch
 ua: "node-fetch"
-rdns: true

@@ -4,4 +4,3 @@
 kind: Tool
 name: go-resty
 ua: "go-resty"
-rdns: true

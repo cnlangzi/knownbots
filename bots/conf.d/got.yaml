@@ -4,4 +4,3 @@
 kind: Tool
 name: got
 ua: "got"
-rdns: true

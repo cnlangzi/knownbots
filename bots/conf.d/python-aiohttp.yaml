@@ -4,4 +4,3 @@
 kind: Tool
 name: python-aiohttp
 ua: "Python/aiohttp"
-rdns: true

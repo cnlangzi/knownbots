@@ -4,4 +4,3 @@
 kind: Tool
 name: wget
 ua: "Wget"
-rdns: true

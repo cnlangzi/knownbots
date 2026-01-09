@@ -4,4 +4,3 @@
 kind: Tool
 name: rust-reqwest
 ua: "reqwest"
-rdns: true

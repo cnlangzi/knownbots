@@ -4,4 +4,3 @@
 kind: Tool
 name: python-requests
 ua: "python-requests"
-rdns: true

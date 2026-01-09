@@ -4,4 +4,3 @@
 kind: Tool
 name: go-http-client
 ua: "Go-http-client"
-rdns: true

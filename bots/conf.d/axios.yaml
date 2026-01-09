@@ -4,4 +4,3 @@
 kind: Tool
 name: axios
 ua: "axios"
-rdns: true

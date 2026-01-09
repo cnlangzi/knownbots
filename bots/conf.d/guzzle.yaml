@@ -4,4 +4,3 @@
 kind: Tool
 name: guzzle
 ua: "GuzzleHttp"
-rdns: true

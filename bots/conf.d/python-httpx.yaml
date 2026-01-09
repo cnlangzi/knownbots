@@ -4,4 +4,3 @@
 kind: Tool
 name: python-httpx
 ua: "python-httpx"
-rdns: true

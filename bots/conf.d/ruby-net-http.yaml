@@ -4,4 +4,3 @@
 kind: Tool
 name: ruby-net-http
 ua: "Ruby"
-rdns: true

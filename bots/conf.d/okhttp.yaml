@@ -4,4 +4,3 @@
 kind: Tool
 name: okhttp
 ua: "OkHttp"
-rdns: true
