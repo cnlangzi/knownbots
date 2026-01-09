@@ -1,0 +1,10 @@
+# YandexBot - Yandex search crawler
+# https://yandex.com/support/webmaster/robot-workings/check-yandex-robots.html
+# Verification: RDNS (no official IP list available)
+kind: Search
+name: yandexbot
+ua: "YandexBot"
+domains:
+  - "yandex.com"
+  - "yandex.ru"
+rdns: true
