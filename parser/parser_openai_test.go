@@ -68,3 +68,99 @@ func TestOpenAIStyleParserWithRealFormat(t *testing.T) {
 		t.Errorf("expected 2 prefixes, got %d", len(result))
 	}
 }
+
+func TestOpenAIStyleParserInvalidPrefixes(t *testing.T) {
+	p := &OpenAIStyleParser{}
+
+	type testCase struct {
+		name        string
+		input       string
+		expectError bool
+		expected    int
+	}
+
+	testCases := []testCase{
+		{
+			name:        "Malformed CIDR (invalid mask)",
+			input:       `{"prefixes": [{"prefix": "1.2.3.4/33"}]}`,
+			expectError: false,
+			expected:    0,
+		},
+		{
+			name:        "Negative prefix length",
+			input:       `{"prefixes": [{"prefix": "1.2.3.4/-1"}]}`,
+			expectError: false,
+			expected:    0,
+		},
+		{
+			name:        "Invalid IP address in CIDR",
+			input:       `{"prefixes": [{"prefix": "999.999.999.999/24"}]}`,
+			expectError: false,
+			expected:    0,
+		},
+		{
+			name:        "Not a CIDR at all",
+			input:       `{"prefixes": [{"prefix": "not-a-cidr"}]}`,
+			expectError: false,
+			expected:    0,
+		},
+		{
+			name:        "Mixed valid and invalid prefixes",
+			input:       `{"prefixes": [{"prefix": "1.2.3.0/24"}, {"prefix": "invalid"}, {"prefix": "5.6.7.0/24"}]}`,
+			expectError: false,
+			expected:    2,
+		},
+		{
+			name:        "IPv6 with invalid prefix length",
+			input:       `{"prefixes": [{"prefix": "2001:db8::/129"}]}`,
+			expectError: false,
+			expected:    0,
+		},
+		{
+			name:        "Invalid IPv6 address",
+			input:       `{"prefixes": [{"prefix": "gggg:gggg::/32"}]}`,
+			expectError: false,
+			expected:    0,
+		},
+		{
+			name:        "Partial success with multiple invalid",
+			input:       `{"prefixes": [{"prefix": "bad1"}, {"prefix": "1.2.3.0/24"}, {"prefix": "bad2"}, {"prefix": "5.6.7.0/24"}, {"prefix": "bad3"}]}`,
+			expectError: false,
+			expected:    2,
+		},
+		{
+			name:        "Empty string prefix is ignored",
+			input:       `{"prefixes": [{"prefix": ""}, {"prefix": "1.2.3.0/24"}]}`,
+			expectError: false,
+			expected:    1,
+		},
+		{
+			name:        "Numbers instead of strings causes error",
+			input:       `{"prefixes": [{"prefix": 123}]}`,
+			expectError: true,
+			expected:    0,
+		},
+		{
+			name:        "Null in prefixes array",
+			input:       `{"prefixes": [null]}`,
+			expectError: false,
+			expected:    0,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result, err := p.Parse(strings.NewReader(tc.input))
+
+			if tc.expectError && err == nil {
+				t.Error("expected error but got none")
+			}
+			if !tc.expectError && err != nil {
+				t.Errorf("unexpected error: %v", err)
+			}
+			if len(result) != tc.expected {
+				t.Errorf("expected %d prefixes, got %d", tc.expected, len(result))
+			}
+		})
+	}
+}

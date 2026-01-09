@@ -40,13 +40,29 @@ func TestGitHubParser(t *testing.T) {
 
 func TestGitHubParserWithRealFormat(t *testing.T) {
 	p := &GitHubParser{}
-	testInput := `{"hooks": ["192.30.252.0/22"], "web": ["192.30.252.0/22"], "api": ["192.30.252.0/22"]}`
+	// Test input with known structure: 3 CIDRs in each category (hooks, web, api)
+	testInput := `{"hooks": ["192.30.252.0/22", "192.30.253.0/24", "192.30.254.0/24"], "web": ["192.30.252.0/22", "192.30.253.0/24", "192.30.254.0/24"], "api": ["192.30.252.0/22", "192.30.253.0/24", "192.30.254.0/24"]}`
 	result, err := p.Parse(strings.NewReader(testInput))
 	if err != nil {
 		t.Fatalf("failed to parse: %v", err)
 	}
 	if len(result) == 0 {
 		t.Error("expected non-empty result")
+	}
+	// Expected: 3 categories × 3 CIDRs each = 9 total
+	if len(result) != 9 {
+		t.Errorf("expected 9 prefixes (3 hooks + 3 web + 3 api), got %d", len(result))
+	}
+	// Verify the CIDRs are correctly parsed
+	expectedPrefixes := []string{
+		"192.30.252.0/22", "192.30.253.0/24", "192.30.254.0/24", // hooks
+		"192.30.252.0/22", "192.30.253.0/24", "192.30.254.0/24", // web
+		"192.30.252.0/22", "192.30.253.0/24", "192.30.254.0/24", // api
+	}
+	for i, exp := range expectedPrefixes {
+		if result[i].String() != exp {
+			t.Errorf("expected prefix %d to be %s, got %s", i, exp, result[i].String())
+		}
 	}
 }
 
