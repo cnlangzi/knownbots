@@ -82,81 +82,30 @@ jobs:
           script: |
             const fs = require('fs');
             const output = fs.readFileSync('benchmark_output.txt', 'utf8');
+
+            // Extract benchmark results section (skip goos/goarch/cpu lines)
             const lines = output.split('\n');
-            
+            const benchmarkLines = lines.filter(line =>
+              line.startsWith('Benchmark') || line.startsWith('PASS') || line.startsWith('ok')
+            );
+
+            // Build comment with raw output
             let comment = '## Benchmark Results\n\n';
-            
-            // Extract Validate benchmark results
-            const validateResults = [];
-            let containsIPns = null;
-            let findBotByUAns = null;
-            
-            for (const line of lines) {
-              if (line.includes('BenchmarkValidate_WithBotUA')) {
-                // Format: BenchmarkValidate_WithBotUA-1    807.8 ns/op         0 B/op          0 allocs/op
-                // parts: [name-iterations, ns/op, B/op, allocs/op]
-                const parts = line.trim().split(/\s+/);
-                // Find CPU from benchmark name suffix (-1, -4, -8)
-                const nameParts = parts[0].split('-');
-                const cpu = nameParts[nameParts.length - 1];
-                const ns = parts[1];
-                // B/op is the 3rd column (parts[2]), but may have spaces
-                const bPerOp = parts[2] === 'ns/op' ? '0' : parts[2];
-                // Find the numeric value before "B/op"
-                const bMatch = line.match(/(\d+)\s+B\/op/);
-                const actualBPerOp = bMatch ? bMatch[1] : '0';
-                // Find allocs count
-                const allocsMatch = line.match(/(\d+)\s+allocs\/op/);
-                const allocs = allocsMatch ? allocsMatch[1] : '0';
-                validateResults.push({ cpu, ns, bPerOp: actualBPerOp, allocs });
-              }
-              if (line.includes('BenchmarkContainsIP')) {
-                const parts = line.trim().split(/\s+/);
-                containsIPns = parts[1];
-              }
-              if (line.includes('BenchmarkFindBotByUA')) {
-                const parts = line.trim().split(/\s+/);
-                findBotByUAns = parts[1];
-              }
-            }
-            
-            // Build comment
-            comment += '### Validate (Hot Path)\n';
-            comment += '| CPUs | ns/op | B/op | Allocs |';
-            comment += '\n|------|-------|------|--------|\n';
-            for (const r of validateResults) {
-              comment += `| ${r.cpu} | ${r.ns} | ${r.bPerOp} | ${r.allocs} |\n`;
-            }
-            
-            // Generate observations based on actual results
-            const observations = [];
-            if (validateResults.length > 0) {
-              const hasZeroAllocs = validateResults.every(r => r.allocs === '0');
-              if (hasZeroAllocs) {
-                observations.push('✅ Zero allocations on hot path (GC-free)');
-              }
-              if (containsIPns && findBotByUAns) {
-                const ratio = (parseInt(containsIPns) / parseInt(findBotByUAns)).toFixed(2);
-                observations.push(`⚡ ContainsIP is ${ratio}x faster than FindBotByUA`);
-              }
-            }
-            
-            if (observations.length > 0) {
-              comment += '\n### Observations\n';
-              comment += observations.join('\n') + '\n';
-            }
-            
+            comment += '```\n';
+            comment += benchmarkLines.join('\n');
+            comment += '\n```\n';
+
             // Find existing benchmark comment
             const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
             });
-            
-            const botComment = comments.find(c => 
+
+            const botComment = comments.find(c =>
               c.user.type === 'Bot' && c.body.startsWith('## Benchmark Results')
             );
-            
+
             if (botComment) {
               // Update existing comment
               await github.rest.issues.updateComment({
