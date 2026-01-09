@@ -1,7 +1,7 @@
 # Baiduspider - Baidu search crawler
 # https://help.baidu.com/question?prod_id=1&type=0
 # Verification: RDNS (no official IP list available)
-kind: Search
+kind: SearchEngine
 name: baiduspider
 ua: "Baiduspider"
 domains:

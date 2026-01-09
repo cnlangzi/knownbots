@@ -1,6 +1,6 @@
 # Semrush SEO crawler (backlinks)
 # https://developers.cloudflare.com/bots/concepts/bot/verified-bots/
-kind: Seo
+kind: SEO
 name: semrushbot-backlinks
 ua: "SemrushBotBacklinks"
 rdns: true

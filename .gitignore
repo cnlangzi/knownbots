@@ -26,12 +26,13 @@ go.work.sum
 
 tasks/
 
+
 # env file
 .env
 
 # Editor/IDE
 # .idea/
 # .vscode/
+.qodo/
 
-# Cache directories
-cache.d/
+

@@ -1,6 +1,6 @@
 # Cloudflare Health Checks crawler
 # Monitors origin server availability
-kind: Monitoring
+kind: Monitor
 name: cloudflare-healthchecks
 ua: "Cloudflare-Healthchecks"
 urls:

@@ -1,6 +1,6 @@
 # Meta AI/Facebook crawler
 # https://developers.cloudflare.com/bots/concepts/bot/verified-bots/
-kind: AiCrawler
+kind: AITraining
 name: meta-externalagent
 ua: "Meta-ExternalAgent"
 parser: google

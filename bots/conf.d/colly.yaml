@@ -4,4 +4,3 @@
 kind: Tool
 name: colly
 ua: "colly"
-rdns: true

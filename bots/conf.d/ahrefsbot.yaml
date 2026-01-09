@@ -1,6 +1,6 @@
 # Ahrefs SEO crawler
 # https://developers.cloudflare.com/bots/concepts/bot/verified-bots/
-kind: Seo
+kind: SEO
 name: ahrefsbot
 ua: "AhrefsBot"
 rdns: true

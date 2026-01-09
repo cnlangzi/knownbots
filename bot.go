@@ -28,6 +28,7 @@ const (
 	KindMonitor      BotKind = "Monitor"      // Uptime/ad verification (Pingdom, AdsBot)
 	KindSecurity     BotKind = "Security"     // Security scanners (Censys, Shodan)
 	KindScraper      BotKind = "Scraper"      // Content/price scrapers
+	KindTool         BotKind = "Tool"         // HTTP client libraries and CLI tools (curl, wget, etc.)
 	KindUnknown      BotKind = "Unknown"      // Unclassified
 )
 

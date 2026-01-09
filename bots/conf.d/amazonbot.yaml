@@ -1,6 +1,6 @@
 # Amazon AI crawler
 # https://developers.cloudflare.com/bots/concepts/bot/verified-bots/
-kind: AiCrawler
+kind: AITraining
 name: amazonbot
 ua: "Amazonbot"
 parser: google

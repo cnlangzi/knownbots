@@ -1,6 +1,6 @@
 # Google Lighthouse (SEO tool)
 # https://developers.cloudflare.com/bots/concepts/bot/verified-bots/
-kind: Seo
+kind: SEO
 name: chrome-lighthouse
 ua: "Chrome-Lighthouse"
 rdns: true
