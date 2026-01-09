@@ -7,4 +7,3 @@ parser: google
 ua: "bingbot"
 urls:
   - "https://www.bing.com/toolbox/bingbot.json"
-custom: []
