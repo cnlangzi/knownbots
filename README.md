@@ -57,7 +57,7 @@ package main
 import (
     "fmt"
     "log"
-    
+
     "github.com/cnlangzi/knownbots"
 )
 
@@ -68,13 +68,13 @@ func main() {
         log.Fatal(err)
     }
     defer v.Close()
-    
+
     // Verify a bot claim
     result := v.Validate(
         "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)",
         "66.249.66.1",
     )
-    
+
     fmt.Printf("Status: %s\n", result.Status)      // "verified"
     fmt.Printf("IsBot: %t\n", result.IsBot)        // true
     fmt.Printf("IsVerified: %t\n", result.IsVerified) // true
@@ -90,15 +90,15 @@ func BotVerificationMiddleware(v *knownbots.Validator) func(http.Handler) http.H
         return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
             ua := r.Header.Get("User-Agent")
             ip := r.RemoteAddr // In production, extract from X-Forwarded-For
-            
+
             result := v.Validate(ua, ip)
-            
+
             // Block fake bots (claims to be bot but IP not verified)
             if result.IsBot && !result.IsVerified {
                 http.Error(w, "Forbidden: Bot verification failed", http.StatusForbidden)
                 return
             }
-            
+
             // Add verification metadata to request context
             ctx := context.WithValue(r.Context(), "botVerified", result)
             next.ServeHTTP(w, r.WithContext(ctx))
@@ -148,80 +148,23 @@ domains:                                   # Verified RDNS domains
 rdns: true                             # Enable RDNS verification (false = IP-only)
 ```
 
-**Important**: 
+**Important**:
 - User-Agent markers (`ua`) are **case-sensitive**. Official bots use fixed casing (e.g., "Googlebot", never "googlebot"). This prevents forgery attempts where attackers alter casing to bypass detection.
 - Set `rdns: false` for bots that only need IP range verification (faster, no DNS queries)
 
-### Adding New Bots
-
-Adding a new bot requires **no code changes** - just create a YAML configuration file.
-
-#### Step 1: Choose Verification Method
-
-| Method | When to Use | Example |
-|--------|-------------|---------|
-| **URL + Parser** | Bot has official JSON/TXT IP list | Googlebot, Bingbot, GPTBot |
-| **RDNS Only** | No official IP list, verify via DNS | Baidu, Yandex |
-
-#### Step 2: Create Configuration File
-
-Create `bots/conf.d/newbot.yaml`:
-
-```yaml
-# Case 1: Bot with official JSON IP list (RECOMMENDED)
-kind: SearchEngine        # Category: SearchEngine, SocialMedia, Tool, etc.
-name: newbot              # Unique identifier (used in results)
-parser: google            # Parser: google, openai, txt, github, stripe
-ua: "NewBot"              # User-Agent fragment (case-sensitive!)
-urls:
-  - "https://example.com/bot-ips.json"
-
-# Case 2: Bot with RDNS verification only (no official IP list)
-kind: SearchEngine
-name: newbot
-ua: "NewBot"
-domains:
-  - "newbot.example.com"
-rdns: true
-```
-
-#### Step 3: Configure Parser
+### Parser Selection
 
 Choose the correct parser based on the IP list format:
 
-**Google-style** (`ipv4Prefix`/`ipv6Prefix` fields):
-```json
-{"prefixes": [{"ipv4Prefix": "1.2.3.4/24"}, {"ipv6Prefix": "2001:db8::/32"}]}
-```
-Parser: `google`
+| Format | JSON Example | Parser |
+|--------|--------------|--------|
+| **Google-style** | `{"prefixes": [{"ipv4Prefix": "1.2.3.4/24"}]}` | `google` |
+| **OpenAI-style** | `{"prefixes": [{"prefix": "1.2.3.4/24"}]}` | `openai` |
+| **Plain text** | `1.2.3.4/24` or `172.16.0.5` | `txt` |
+| **GitHub-style** | `{"hooks": ["1.2.3.4/24"], "web": [...]}` | `github` |
+| **Stripe-style** | `{"WEBHOOKS": ["3.18.12.63"]}` | `stripe` |
 
-**OpenAI-style** (`prefix` field):
-```json
-{"prefixes": [{"prefix": "1.2.3.4/24"}]}
-```
-Parser: `openai`
-
-**Plain text** (one CIDR or individual IP per line):
-```
-1.2.3.4/24
-5.6.7.8/24
-172.16.0.5
-```
-Parser: `txt` (converts individual IPs to /32 or /128 CIDR notation)
-
-**GitHub-style** (`hooks`, `web`, `api` string arrays):
-```json
-{"hooks": ["192.30.252.0/22"], "web": ["192.30.252.0/22"], "api": ["192.30.252.0/22"]}
-```
-Parser: `github`
-
-**Stripe-style** (`WEBHOOKS` array with individual IPs):
-```json
-{"WEBHOOKS": ["3.18.12.63", "3.130.192.231", "13.235.14.237"]}
-```
-Parser: `stripe` (converts individual IPs to /32 or /128 CIDR notation)
-
-#### Step 4: User-Agent Matching Rules
+### User-Agent Matching Rules
 
 1. **Case-sensitive**: Use exact casing from official documentation
    - ✅ Correct: `ua: "Googlebot"` or `ua: "bingbot"`
@@ -234,142 +177,6 @@ Parser: `stripe` (converts individual IPs to /32 or /128 CIDR notation)
 3. **Special bots**: Some bots don't use Mozilla prefix
    - `ua: "GPTBot"` (OpenAI)
    - `ua: "curl"` (CLI tool)
-
-#### Step 5: Reload Configuration
-
-```go
-// Hot reload without restart
-v.Reload("./bots")
-```
-
-#### Step 6: Verify
-
-```go
-result := v.Validate(
-    "Mozilla/5.0 (compatible; NewBot/1.0; +https://example.com/bot)",
-    "1.2.3.4",
-)
-
-fmt.Printf("Status: %s\n", result.Status)      // "verified"
-fmt.Printf("IsBot: %t\n", result.IsBot)        // true
-fmt.Printf("IsVerified: %t\n", result.IsVerified) // true
-```
-
-#### Example Configurations
-
-**Googlebot (official JSON, fast verification)**:
-```yaml
-kind: SearchEngine
-name: googlebot
-parser: google
-ua: "Googlebot"
-urls:
-  - "https://www.gstatic.com/ipranges/google.json"
-```
-
-**Bingbot (official JSON)**:
-```yaml
-kind: SearchEngine
-name: bingbot
-parser: google
-ua: "bingbot"
-urls:
-  - "https://www.bing.com/toolbox/bingbot.json"
-```
-
-**GPTBot (OpenAI uses Google-style JSON)**:
-```yaml
-kind: AiTraining
-name: gptbot
-parser: google
-ua: "GPTBot"
-urls:
-  - "https://openai.com/gptbot.json"
-```
-
-**Applebot (official JSON from developer.apple.com)**:
-```yaml
-kind: SearchEngine
-name: applebot
-parser: google
-ua: "Applebot"
-urls:
-  - "https://search.developer.apple.com/applebot.json"
-```
-
-**GitHub Webhooks**:
-```yaml
-kind: Tool
-name: github
-parser: github
-ua: "GitHub-Hookshot"
-urls:
-  - "https://api.github.com/meta"
-```
-
-**Stripe Webhooks**:
-```yaml
-kind: Tool
-name: stripe
-parser: stripe
-ua: "Stripe"
-urls:
-  - "https://stripe.com/files/ips/ips_webhooks.json"
-```
-
-**UptimeRobot (plain text with individual IPs)**:
-```yaml
-kind: Monitoring
-name:uptimerobot
-parser: txt
-ua: "UptimeRobot"
-urls:
-  - "https://uptimerobot.com/inc/files/ips/IPv4.txt"
-```
-
-**Baidu (RDNS only, no official IP list)**:
-```yaml
-kind: SearchEngine
-name: baiduspider
-ua: "Baiduspider"
-domains:
-  - "baidu.com"
-  - "baidu.jp"
-rdns: true
-```
-
-**Yandex (RDNS only)**:
-```yaml
-kind: SearchEngine
-name: yandexbot
-ua: "YandexBot"
-domains:
-  - "yandex.com"
-  - "yandex.ru"
-rdns: true
-```
-
-#### Common Mistakes
-
-| Mistake | Problem | Solution |
-|---------|---------|----------|
-| Wrong casing | "googlebot" won't match "Googlebot/2.1" | Use exact casing: "Googlebot" |
-| Wrong parser | JSON not parsed correctly | Match parser to JSON structure |
-| Missing `rdns: true` | RDNS verification not performed | Add `rdns: true` for DNS-based bots |
-| Empty `custom: []` | Unnecessary configuration | Omit empty fields |
-
-#### Testing New Bot Config
-
-```bash
-# Validate YAML syntax
-go run -e 'yaml' ./bots/conf.d/newbot.yaml
-
-# Test bot matching
-go test -v -run TestValidator
-
-# Check IP parsing
-curl -s https://example.com/bot-ips.json | jq '.prefixes[0]'
-```
 
 ## How It Works
 
@@ -631,14 +438,272 @@ RDNS cache sees 1-20 new IPs per day but 1000s of reads per second (99.99% read 
 ### Why byte-level index?
 Linear bot list scan is fast for 3 bots (52ns) but degrades to 640ns at 40 bots. Single-character index provides 4-5x speedup for 20-50 bots at minimal memory cost (<1KB).
 
+## Adding New Bots
+
+Adding a new bot requires **no code changes** - just create a YAML configuration file.
+
+### Step 1: Choose Verification Method
+
+| Method | When to Use | Example |
+|--------|-------------|---------|
+| **URL + Parser** | Bot has official JSON/TXT IP list | Googlebot, Bingbot, GPTBot |
+| **RDNS Only** | No official IP list, verify via DNS | Baidu, Yandex |
+
+### Step 2: Create Configuration File
+
+Create `bots/conf.d/newbot.yaml`:
+
+```yaml
+# Case 1: Bot with official JSON IP list (RECOMMENDED)
+kind: SearchEngine        # Category: SearchEngine, SocialMedia, Tool, etc.
+name: newbot              # Unique identifier (used in results)
+parser: google            # Parser: google, openai, txt, github, stripe
+ua: "NewBot"              # User-Agent fragment (case-sensitive!)
+urls:
+  - "https://example.com/bot-ips.json"
+
+# Case 2: Bot with RDNS verification only (no official IP list)
+kind: SearchEngine
+name: newbot
+ua: "NewBot"
+domains:
+  - "newbot.example.com"
+rdns: true
+```
+
+### Step 3: Configure Parser
+
+Choose the correct parser based on the IP list format:
+
+**Google-style** (`ipv4Prefix`/`ipv6Prefix` fields):
+```json
+{"prefixes": [{"ipv4Prefix": "1.2.3.4/24"}, {"ipv6Prefix": "2001:db8::/32"}]}
+```
+Parser: `google`
+
+**OpenAI-style** (`prefix` field):
+```json
+{"prefixes": [{"prefix": "1.2.3.4/24"}]}
+```
+Parser: `openai`
+
+**Plain text** (one CIDR or individual IP per line):
+```
+1.2.3.4/24
+5.6.7.8/24
+172.16.0.5
+```
+Parser: `txt` (converts individual IPs to /32 or /128 CIDR notation)
+
+**GitHub-style** (`hooks`, `web`, `api` string arrays):
+```json
+{"hooks": ["192.30.252.0/22"], "web": ["192.30.252.0/22"], "api": ["192.30.252.0/22"]}
+```
+Parser: `github`
+
+**Stripe-style** (`WEBHOOKS` array with individual IPs):
+```json
+{"WEBHOOKS": ["3.18.12.63", "3.130.192.231", "13.235.14.237"]}
+```
+Parser: `stripe` (converts individual IPs to /32 or /128 CIDR notation)
+
+### Step 4: Reload Configuration
+
+```go
+// Hot reload without restart
+v.Reload("./bots")
+```
+
+### Step 5: Verify
+
+```go
+result := v.Validate(
+    "Mozilla/5.0 (compatible; NewBot/1.0; +https://example.com/bot)",
+    "1.2.3.4",
+)
+
+fmt.Printf("Status: %s\n", result.Status)      // "verified"
+fmt.Printf("IsBot: %t\n", result.IsBot)        // true
+fmt.Printf("IsVerified: %t\n", result.IsVerified) // true
+```
+
+### Example Configurations
+
+**Googlebot (official JSON, fast verification)**:
+```yaml
+kind: SearchEngine
+name: googlebot
+parser: google
+ua: "Googlebot"
+urls:
+  - "https://www.gstatic.com/ipranges/google.json"
+```
+
+**Bingbot (official JSON)**:
+```yaml
+kind: SearchEngine
+name: bingbot
+parser: google
+ua: "bingbot"
+urls:
+  - "https://www.bing.com/toolbox/bingbot.json"
+```
+
+**GPTBot (OpenAI uses Google-style JSON)**:
+```yaml
+kind: AiTraining
+name: gptbot
+parser: google
+ua: "GPTBot"
+urls:
+  - "https://openai.com/gptbot.json"
+```
+
+**Applebot (official JSON from developer.apple.com)**:
+```yaml
+kind: SearchEngine
+name: applebot
+parser: google
+ua: "Applebot"
+urls:
+  - "https://search.developer.apple.com/applebot.json"
+```
+
+**GitHub Webhooks**:
+```yaml
+kind: Tool
+name: github
+parser: github
+ua: "GitHub-Hookshot"
+urls:
+  - "https://api.github.com/meta"
+```
+
+**Stripe Webhooks**:
+```yaml
+kind: Tool
+name: stripe
+parser: stripe
+ua: "Stripe"
+urls:
+  - "https://stripe.com/files/ips/ips_webhooks.json"
+```
+
+**UptimeRobot (plain text with individual IPs)**:
+```yaml
+kind: Monitoring
+name:uptimerobot
+parser: txt
+ua: "UptimeRobot"
+urls:
+  - "https://uptimerobot.com/inc/files/ips/IPv4.txt"
+```
+
+**Baidu (RDNS only, no official IP list)**:
+```yaml
+kind: SearchEngine
+name: baiduspider
+ua: "Baiduspider"
+domains:
+  - "baidu.com"
+  - "baidu.jp"
+rdns: true
+```
+
+**Yandex (RDNS only)**:
+```yaml
+kind: SearchEngine
+name: yandexbot
+ua: "YandexBot"
+domains:
+  - "yandex.com"
+  - "yandex.ru"
+rdns: true
+```
+
+### Common Mistakes
+
+| Mistake | Problem | Solution |
+|---------|---------|----------|
+| Wrong casing | "googlebot" won't match "Googlebot/2.1" | Use exact casing: "Googlebot" |
+| Wrong parser | JSON not parsed correctly | Match parser to JSON structure |
+| Missing `rdns: true` | RDNS verification not performed | Add `rdns: true` for DNS-based bots |
+| Empty `custom: []` | Unnecessary configuration | Omit empty fields |
+
+### Testing New Bot Config
+
+```bash
+# Run tests to verify bot parsing
+go test -v ./...
+
+# Run specific parser test
+go test -v -run TestGoogleParser ./parser/
+
+# Validate IP list format
+curl -s https://example.com/bot-ips.json | jq '.prefixes[0]'
+```
+
 ## Contributing
 
-Contributions are welcome! Please:
+Contributions are welcome! Whether you want to add new bots, fix bugs, or improve documentation.
 
-1. Add bot configurations to `bots/conf.d/` (ensure `ua` matches official casing)
-2. Write tests for new functionality
-3. Run benchmarks to verify no performance regressions
-4. Follow [standard Go conventions](https://go.dev/doc/effective_go)
+### Ways to Contribute
+
+1. **Add new bot configurations** - Most contributions are just YAML files in `bots/conf.d/`
+2. **Fix parser issues** - Handle new or different IP list formats
+3. **Improve documentation** - Fix typos, clarify instructions, add examples
+4. **Report bugs** - Open issues with minimal reproduction steps
+5. **Suggest features** - Open discussions about new functionality
+
+### Submitting Pull Requests
+
+1. **Fork the repository** on GitHub
+2. **Create a feature branch**: `git checkout -b add-newbot`
+3. **Add your bot configuration** to `bots/conf.d/newbot.yaml`
+4. **Test your changes**:
+   ```bash
+   go test -short ./...
+   go test -v -run TestNewBot ./parser/
+   ```
+5. **Commit using Google Git convention**:
+   ```bash
+   git commit -m "feat: add NewBot configuration
+
+   - Add NewBot YAML configuration
+   - Verify User-Agent matching
+   - Test IP parsing with official API
+
+   PiperOrigin-RevId: XXXXXXXX
+   Change-Id: IXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+   ```
+6. **Push and create a Pull Request**
+
+### Bot Configuration Guidelines
+
+When adding a new bot configuration:
+
+1. **Verify the User-Agent** from official documentation
+   - Use exact casing (e.g., "Googlebot", not "googlebot")
+   - Check for word boundary matching requirements
+
+2. **Find the official IP list URL**
+   - Most major bots publish JSON/TXT IP lists
+   - Prefer official sources over third-party aggregators
+
+3. **Choose the correct parser**
+   - Match the parser to the actual JSON structure
+   - Test with real API response before submitting
+
+4. **Test thoroughly**
+   - Run `go test -short ./...` to verify no regressions
+   - Check integration tests pass for new bot if applicable
+
+### Code Style
+
+- Follow [standard Go conventions](https://go.dev/doc/effective_go)
+- Run `go fmt ./...` before committing
+- Run `go vet ./...` to catch potential issues
+- Add tests for new functionality
 
 ## License
 
