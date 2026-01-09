@@ -1,0 +1,9 @@
+# GPTBot - OpenAI AI training crawler
+# https://platform.openai.com/docs/bots
+# JSON format: https://openai.com/gptbot.json
+kind: AiTraining
+name: gptbot
+parser: openai
+ua: "GPTBot"
+urls:
+  - "https://openai.com/gptbot.json"
