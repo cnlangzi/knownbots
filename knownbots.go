@@ -76,24 +76,30 @@ func downloadIPs(httpClient *http.Client, bot *Bot) []netip.Prefix {
 	p := parser.Get(bot.Parser)
 
 	for _, url := range bot.URLs {
-		resp, err := httpClient.Get(url)
-		if err != nil {
-			continue
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode != http.StatusOK {
-			continue
-		}
-
-		prefixes, err := p.Parse(resp.Body)
-		if err != nil {
-			log.Printf("[knownbots] failed to parse IPs from %s: %v", url, err)
-			continue
-		}
+		prefixes := fetchAndParse(httpClient, p, url)
 		allPrefixes = append(allPrefixes, prefixes...)
 	}
 	return allPrefixes
+}
+
+// fetchAndParse fetches IP ranges from a single URL and parses them.
+func fetchAndParse(httpClient *http.Client, p parser.Parser, url string) []netip.Prefix {
+	resp, err := httpClient.Get(url)
+	if err != nil {
+		return nil
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil
+	}
+
+	prefixes, err := p.Parse(resp.Body)
+	if err != nil {
+		log.Printf("[knownbots] failed to parse IPs from %s: %v", url, err)
+		return nil
+	}
+	return prefixes
 }
 
 // writeIPs persists IP ranges to file (failure is OK).
