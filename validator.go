@@ -1,18 +1,12 @@
 package knownbots
 
 import (
-	"bufio"
 	"context"
-	"fmt"
 	"log"
 	"net/http"
-	"net/netip"
-	"os"
 	"path/filepath"
 	"sync/atomic"
 	"time"
-
-	"github.com/cnlangzi/knownbots/parser"
 )
 
 // Default settings
@@ -58,63 +52,6 @@ func (v *Validator) getBots() []*Bot {
 func (v *Validator) setBots(bots []*Bot) {
 	v.bots.Store(bots)
 	v.uaIndex.Store(buildUAIndex(bots))
-}
-
-// buildUAIndex creates a byte-level index mapping first characters to bot candidates.
-func buildUAIndex(bots []*Bot) map[byte][]*Bot {
-	index := make(map[byte][]*Bot, 26)
-
-	for _, bot := range bots {
-		if bot.UA == "" {
-			continue
-		}
-
-		firstChar := bot.UA[0]
-		index[firstChar] = append(index[firstChar], bot)
-	}
-
-	return index
-}
-
-// Config holds the options for creating a Validator.
-type Config struct {
-	Root       string
-	Interval   time.Duration
-	FailLimit  int
-	ClassifyUA bool
-}
-
-// Option is a functional option for configuring a Validator.
-type Option func(*Config)
-
-// WithRoot sets the bots root directory (containing conf.d and data subdirs).
-func WithRoot(dir string) Option {
-	return func(c *Config) {
-		c.Root = dir
-	}
-}
-
-// WithSchedulerInterval sets the background scheduler interval.
-func WithSchedulerInterval(interval time.Duration) Option {
-	return func(c *Config) {
-		c.Interval = interval
-	}
-}
-
-// WithFailLimit sets the limit for failed lookup cache.
-func WithFailLimit(limit int) Option {
-	return func(c *Config) {
-		c.FailLimit = limit
-	}
-}
-
-// WithClassifyUA enables UA classification for non-bot UAs.
-// By default, classifyUA is disabled for performance.
-// Enable it to distinguish legitimate browsers from suspicious UAs.
-func WithClassifyUA() Option {
-	return func(c *Config) {
-		c.ClassifyUA = true
-	}
 }
 
 // New creates a new Validator instance with background scheduler.
@@ -213,53 +150,6 @@ func (v *Validator) runScheduler(httpClient *http.Client) {
 			log.Printf("[knownbots] failed to persist cache for %s: %v", bot.Name, err)
 		}
 	}
-}
-
-// downloadIPs fetches IP ranges from URLs and parses using the bot's registered parser.
-func downloadIPs(httpClient *http.Client, bot *Bot) []netip.Prefix {
-	var allPrefixes []netip.Prefix
-	p := parser.Get(bot.Parser)
-
-	for _, url := range bot.URLs {
-		resp, err := httpClient.Get(url)
-		if err != nil {
-			continue
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode != http.StatusOK {
-			continue
-		}
-
-		prefixes, err := p.Parse(resp.Body)
-		if err != nil {
-			log.Printf("[knownbots] failed to parse IPs from %s: %v", url, err)
-			continue
-		}
-		allPrefixes = append(allPrefixes, prefixes...)
-	}
-	return allPrefixes
-}
-
-// writeIPs persists IP ranges to file (failure is OK).
-func writeIPs(path string, prefixes []netip.Prefix) {
-	err := os.MkdirAll(filepath.Dir(path), 0755)
-	if err != nil {
-		return
-	}
-	f, err := os.Create(path)
-	if err != nil {
-		return
-	}
-	defer f.Close()
-
-	w := bufio.NewWriter(f)
-	for _, prefix := range prefixes {
-		if _, err := fmt.Fprintln(w, prefix.String()); err != nil {
-			return
-		}
-	}
-	w.Flush()
 }
 
 // Validate verifies if the given UserAgent and IP belong to a known bot.
