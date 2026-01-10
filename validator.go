@@ -199,9 +199,9 @@ func (v *Validator) verifyIP(bot *Bot, ipStr string) Result {
 	// RDNS verification
 	if bot.RDNS {
 		switch bot.VerifyRDNS(ipStr) {
-		case VerifyStatusOK:
+		case StatusVerified:
 			return Result{BotName: bot.Name, BotKind: bot.Kind, Status: StatusVerified, IsBot: true}
-		case VerifyStatusNetworkError:
+		case StatusPending:
 			return Result{BotName: bot.Name, BotKind: bot.Kind, Status: StatusPending, IsBot: true}
 		default:
 			return Result{BotName: bot.Name, BotKind: bot.Kind, Status: StatusFailed, IsBot: true}

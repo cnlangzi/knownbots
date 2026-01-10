@@ -197,31 +197,22 @@ func (b *Bot) ContainsIP(ipStr string) bool {
 	return false
 }
 
-// VerifyStatus represents the result of RDNS verification.
-type VerifyStatus int
-
-const (
-	VerifyStatusOK             VerifyStatus = 1  // Verified successfully
-	VerifyStatusDomainMismatch VerifyStatus = 0  // Domain not matched
-	VerifyStatusNetworkError   VerifyStatus = -1 // Network error
-)
-
 // VerifyRDNS checks if the IP's reverse DNS hostname matches this bot's domains.
 // It uses the bot's cache for performance.
-func (b *Bot) VerifyRDNS(ipStr string) VerifyStatus {
+func (b *Bot) VerifyRDNS(ipStr string) ResultStatus {
 	cache := b.Cache
 
 	// Check fail cache first (fast rejection)
 	if b.fail.Contains(ipStr) {
-		return VerifyStatusDomainMismatch
+		return StatusFailed
 	}
 
 	// Check valid cache first
 	if hostname, ok := cache.Get(ipStr); ok {
 		if matchDomain(hostname, b.Domains) {
-			return VerifyStatusOK
+			return StatusVerified
 		}
-		return VerifyStatusDomainMismatch
+		return StatusFailed
 	}
 
 	// Perform RDNS lookup
@@ -229,16 +220,16 @@ func (b *Bot) VerifyRDNS(ipStr string) VerifyStatus {
 	if err != nil || len(names) == 0 {
 		// Network error or no records
 		b.fail.Add(ipStr)
-		return VerifyStatusNetworkError
+		return StatusPending
 	}
 
 	hostname := strings.TrimSuffix(names[0], ".")
 	if matchDomain(hostname, b.Domains) {
 		cache.Set(ipStr, hostname)
-		return VerifyStatusOK
+		return StatusVerified
 	}
 
 	// Valid RDNS but not matching domain - mark as failed
 	b.fail.Add(ipStr)
-	return VerifyStatusDomainMismatch
+	return StatusFailed
 }
