@@ -60,12 +60,16 @@ func Load(dir string) ([]*Bot, error) {
 	customDir := filepath.Join(dir, "conf.d")
 	entries, err := os.ReadDir(customDir)
 	if err != nil {
-		// If custom dir doesn't exist, just return built-in bots
-		bots := make([]*Bot, 0, len(embedded))
-		for _, bot := range embedded {
-			bots = append(bots, bot)
+		// Only treat "dir doesn't exist" as "use built-in only"
+		// Return other errors (permission, I/O) so callers can handle them
+		if os.IsNotExist(err) {
+			bots := make([]*Bot, 0, len(embedded))
+			for _, bot := range embedded {
+				bots = append(bots, bot)
+			}
+			return bots, nil
 		}
-		return bots, nil
+		return nil, err
 	}
 
 	// Merge: start with embedded, then override with custom
