@@ -40,12 +40,13 @@ type Result struct {
 
 // Validator is the core bot verification engine.
 type Validator struct {
-	root      string
-	bots      atomic.Value // []*Bot, atomic for lock-free reads
-	uaIndex   atomic.Value // map[byte][]*Bot, byte-level index for UA lookup
-	cancel    context.CancelFunc
-	interval  time.Duration
-	failLimit int
+	root       string
+	bots       atomic.Value // []*Bot, atomic for lock-free reads
+	uaIndex    atomic.Value // map[byte][]*Bot, byte-level index for UA lookup
+	cancel     context.CancelFunc
+	interval   time.Duration
+	failLimit  int
+	classifyUA bool
 }
 
 // getBots returns the current bots slice atomically.
@@ -77,9 +78,10 @@ func buildUAIndex(bots []*Bot) map[byte][]*Bot {
 
 // Config holds the options for creating a Validator.
 type Config struct {
-	Root      string
-	Interval  time.Duration
-	FailLimit int
+	Root       string
+	Interval   time.Duration
+	FailLimit  int
+	ClassifyUA bool
 }
 
 // Option is a functional option for configuring a Validator.
@@ -106,12 +108,22 @@ func WithFailLimit(limit int) Option {
 	}
 }
 
+// WithClassifyUA enables or disables UA classification for non-bot UAs.
+// When disabled, classifyUA is skipped for faster performance.
+// Default: true (classifyUA is executed)
+func WithClassifyUA(enabled bool) Option {
+	return func(c *Config) {
+		c.ClassifyUA = enabled
+	}
+}
+
 // New creates a new Validator instance with background scheduler.
 func New(opts ...Option) (*Validator, error) {
 	cfg := Config{
-		Root:      "./bots",
-		Interval:  SchedulerInterval,
-		FailLimit: FailLRULimit,
+		Root:       "./bots",
+		Interval:   SchedulerInterval,
+		FailLimit:  FailLRULimit,
+		ClassifyUA: true,
 	}
 	for _, opt := range opts {
 		opt(&cfg)
@@ -136,10 +148,11 @@ func New(opts ...Option) (*Validator, error) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	v := &Validator{
-		root:      cfg.Root,
-		cancel:    cancel,
-		interval:  cfg.Interval,
-		failLimit: cfg.FailLimit,
+		root:       cfg.Root,
+		cancel:     cancel,
+		interval:   cfg.Interval,
+		failLimit:  cfg.FailLimit,
+		classifyUA: cfg.ClassifyUA,
 	}
 	v.setBots(bots)
 
@@ -263,17 +276,22 @@ func (v *Validator) Validate(ua, ip string) Result {
 	}
 
 	// Step 2: Classify UA type (single pass)
-	switch classifyUA(ua) {
-	case Browser:
-		// Valid browser structure → not a bot
-		return Result{Status: StatusUnknown, IsBot: false, IsVerified: false}
-	case Suspicious:
-		// Claims to be browser but malformed → suspicious bot
-		return Result{Status: StatusUnknown, IsBot: true, IsVerified: false}
-	default:
-		//unknown bot
-		return Result{Status: StatusUnknown, IsBot: true, IsVerified: false}
+	if v.classifyUA {
+		switch classifyUA(ua) {
+		case Browser:
+			// Valid browser structure → not a bot
+			return Result{Status: StatusUnknown, IsBot: false, IsVerified: false}
+		case Suspicious:
+			// Claims to be browser but malformed → suspicious bot
+			return Result{Status: StatusUnknown, IsBot: true, IsVerified: false}
+		default:
+			//unknown bot
+			return Result{Status: StatusUnknown, IsBot: true, IsVerified: false}
+		}
 	}
+
+	// classifyUA disabled: assume unknown bot for non-matched UAs
+	return Result{Status: StatusUnknown, IsBot: true, IsVerified: false}
 }
 
 // verifyIP verifies if the IP belongs to the given bot.
