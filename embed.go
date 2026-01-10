@@ -75,7 +75,9 @@ func parseBotConfig(data []byte, filename string) (*Bot, error) {
 
 	// Validate required Name field
 	if tmp.Name == "" {
-		log.Printf("[knownbots] skip %q: missing required 'name' field", filename)
+		if EnableLog {
+			log.Printf("[knownbots] skip %q: missing required 'name' field", filename)
+		}
 		return nil, nil
 	}
 

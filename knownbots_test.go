@@ -9,6 +9,10 @@ import (
 	"time"
 )
 
+func init() {
+	EnableLog = false
+}
+
 func TestLoad(t *testing.T) {
 	tmpDir := t.TempDir()
 

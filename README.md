@@ -23,6 +23,7 @@
 - **Copy-on-Write caching** optimized for read-heavy workloads (1-20 writes/day)
 - **Embedded bots** - 57 built-in configs compiled into binary (no file I/O at startup)
 - **Optional UA classification** - Disabled by default for maximum performance
+- **Logging control** - Disable log output via `knownbots.EnableLog = false`
 
 ### 🔒 Security First
 - **Case-sensitive matching** prevents forgery attempts (official bots use fixed casing)
@@ -118,6 +119,9 @@ v, err := knownbots.New(
     knownbots.WithFailLimit(5000),                 // Failed lookup cache size
     knownbots.WithClassifyUA(),                    // Enable UA classification (disabled by default)
 )
+
+// Disable logging to reduce console pollution (e.g., in benchmarks)
+knownbots.EnableLog = false
 ```
 
 ## Configuration
