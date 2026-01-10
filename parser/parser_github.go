@@ -9,6 +9,13 @@ import (
 
 type GitHubParser struct{}
 
+// githubResponse represents the JSON response from GitHub's IP API.
+type githubResponse struct {
+	Hooks []string `json:"hooks"`
+	Web   []string `json:"web"`
+	API   []string `json:"api"`
+}
+
 func (p *GitHubParser) Name() string {
 	return "github"
 }
@@ -19,17 +26,13 @@ func (p *GitHubParser) Parse(r io.Reader) ([]netip.Prefix, error) {
 		return nil, fmt.Errorf("failed to read data: %w", err)
 	}
 
-	var result struct {
-		Hooks []string `json:"hooks"`
-		Web   []string `json:"web"`
-		API   []string `json:"api"`
-	}
-	if err := json.Unmarshal(data, &result); err != nil {
+	var resp githubResponse
+	if err := json.Unmarshal(data, &resp); err != nil {
 		return nil, fmt.Errorf("failed to parse github json: %w", err)
 	}
 
 	var prefixes []netip.Prefix
-	for _, cidr := range result.Hooks {
+	for _, cidr := range resp.Hooks {
 		if cidr != "" {
 			prefix, err := netip.ParsePrefix(cidr)
 			if err == nil {
@@ -37,7 +40,7 @@ func (p *GitHubParser) Parse(r io.Reader) ([]netip.Prefix, error) {
 			}
 		}
 	}
-	for _, cidr := range result.Web {
+	for _, cidr := range resp.Web {
 		if cidr != "" {
 			prefix, err := netip.ParsePrefix(cidr)
 			if err == nil {
@@ -45,7 +48,7 @@ func (p *GitHubParser) Parse(r io.Reader) ([]netip.Prefix, error) {
 			}
 		}
 	}
-	for _, cidr := range result.API {
+	for _, cidr := range resp.API {
 		if cidr != "" {
 			prefix, err := netip.ParsePrefix(cidr)
 			if err == nil {

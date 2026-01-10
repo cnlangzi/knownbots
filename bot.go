@@ -19,6 +19,18 @@ type IPPrefix = netip.Prefix
 // See classification matrix in bots/conf.d/ for full reference.
 type BotKind string
 
+// botConfig represents the YAML configuration for a bot.
+type botConfig struct {
+	Name    string   `yaml:"name"`
+	Kind    BotKind  `yaml:"kind"`
+	Parser  string   `yaml:"parser"`
+	UA      string   `yaml:"ua"`
+	URLs    []string `yaml:"urls"`
+	Custom  []string `yaml:"custom"`
+	Domains []string `yaml:"domains"`
+	RDNS    bool     `yaml:"rdns"`
+}
+
 const (
 	KindSearchEngine BotKind = "SearchEngine" // Search engine crawlers (Googlebot, Bingbot)
 	KindSocialMedia  BotKind = "SocialMedia"  // Social media preview fetchers (FacebookBot, Twitterbot)
@@ -120,22 +132,13 @@ func loadBot(path string) (*Bot, error) {
 		return nil, err
 	}
 
-	var tmp struct {
-		Name    string   `yaml:"name"`
-		Kind    BotKind  `yaml:"kind"`
-		Parser  string   `yaml:"parser"`
-		UA      string   `yaml:"ua"`
-		URLs    []string `yaml:"urls"`
-		Custom  []string `yaml:"custom"`
-		Domains []string `yaml:"domains"`
-		RDNS    bool     `yaml:"rdns"`
-	}
-	if err := yaml.Unmarshal(data, &tmp); err != nil {
+	var cfg botConfig
+	if err := yaml.Unmarshal(data, &cfg); err != nil {
 		return nil, err
 	}
 
 	// Validate required Name field
-	if tmp.Name == "" {
+	if cfg.Name == "" {
 		if EnableLog {
 			log.Printf("[knownbots] skip %q: missing required 'name' field", path)
 		}
@@ -143,24 +146,24 @@ func loadBot(path string) (*Bot, error) {
 	}
 
 	// Use bot name as default parser if not specified
-	parser := tmp.Parser
+	parser := cfg.Parser
 	if parser == "" {
-		parser = tmp.Name
+		parser = cfg.Name
 	}
 
-	customNets := parseCIDRs(tmp.Custom)
+	customNets := parseCIDRs(cfg.Custom)
 	customValue := &atomic.Pointer[[]IPPrefix]{}
 	customValue.Store(&customNets)
 
 	return &Bot{
-		Name:    tmp.Name,
-		Kind:    tmp.Kind,
+		Name:    cfg.Name,
+		Kind:    cfg.Kind,
 		Parser:  parser,
-		UA:      tmp.UA,
-		URLs:    tmp.URLs,
+		UA:      cfg.UA,
+		URLs:    cfg.URLs,
 		custom:  customValue,
-		Domains: tmp.Domains,
-		RDNS:    tmp.RDNS,
+		Domains: cfg.Domains,
+		RDNS:    cfg.RDNS,
 	}, nil
 }
 
@@ -174,11 +177,6 @@ func parseCIDRs(cidrs []string) []IPPrefix {
 		}
 	}
 	return nets
-}
-
-// SetCustom atomically updates the custom IP list.
-func (b *Bot) SetCustom(prefixes []netip.Prefix) {
-	b.custom.Store(&prefixes)
 }
 
 // ContainsIP checks if the IP is in the bot's custom IP ranges.
@@ -199,34 +197,41 @@ func (b *Bot) ContainsIP(ipStr string) bool {
 
 // VerifyRDNS checks if the IP's reverse DNS hostname matches this bot's domains.
 // It uses the bot's cache for performance.
-func (b *Bot) VerifyRDNS(ipStr string) bool {
+func (b *Bot) VerifyRDNS(ipStr string) ResultStatus {
 	cache := b.Cache
 
 	// Check fail cache first (fast rejection)
 	if b.fail.Contains(ipStr) {
-		return false
+		return StatusFailed
 	}
 
 	// Check valid cache first
 	if hostname, ok := cache.Get(ipStr); ok {
-		return matchDomain(hostname, b.Domains)
+		if matchDomain(hostname, b.Domains) {
+			return StatusVerified
+		}
+		return StatusFailed
 	}
 
 	// Perform RDNS lookup
 	names, err := net.LookupAddr(ipStr)
-	if err != nil || len(names) == 0 {
-		// Network error or no records - mark as failed
+	if err != nil {
+		// Network error - allow retry, do not add to fail cache
+		return StatusPending
+	}
+	if len(names) == 0 {
+		// No PTR records - verification failed, add to fail cache
 		b.fail.Add(ipStr)
-		return false
+		return StatusFailed
 	}
 
 	hostname := strings.TrimSuffix(names[0], ".")
 	if matchDomain(hostname, b.Domains) {
 		cache.Set(ipStr, hostname)
-		return true
+		return StatusVerified
 	}
 
 	// Valid RDNS but not matching domain - mark as failed
 	b.fail.Add(ipStr)
-	return false
+	return StatusFailed
 }

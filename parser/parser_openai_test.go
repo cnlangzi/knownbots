@@ -6,8 +6,8 @@ import (
 	"testing"
 )
 
-func TestOpenAIStyleParser(t *testing.T) {
-	p := &OpenAIStyleParser{}
+func TestOpenAIParser(t *testing.T) {
+	p := &OpenAIParser{}
 
 	testCases := []struct {
 		name     string
@@ -54,8 +54,8 @@ func TestOpenAIStyleParser(t *testing.T) {
 	}
 }
 
-func TestOpenAIStyleParserWithRealFormat(t *testing.T) {
-	p := &OpenAIStyleParser{}
+func TestOpenAIParserWithRealFormat(t *testing.T) {
+	p := &OpenAIParser{}
 	testInput := `{"prefixes": [{"prefix": "132.196.86.0/24"}, {"prefix": "172.182.202.0/25"}]}`
 	result, err := p.Parse(strings.NewReader(testInput))
 	if err != nil {
@@ -69,8 +69,8 @@ func TestOpenAIStyleParserWithRealFormat(t *testing.T) {
 	}
 }
 
-func TestOpenAIStyleParserInvalidPrefixes(t *testing.T) {
-	p := &OpenAIStyleParser{}
+func TestOpenAIParserInvalidPrefixes(t *testing.T) {
+	p := &OpenAIParser{}
 
 	type testCase struct {
 		name        string

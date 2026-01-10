@@ -58,46 +58,37 @@ func loadEmbedded() (map[string]*Bot, error) {
 
 // parseBotConfig parses bot configuration from YAML data.
 func parseBotConfig(data []byte, filename string) (*Bot, error) {
-	var tmp struct {
-		Name    string   `yaml:"name"`
-		Kind    BotKind  `yaml:"kind"`
-		Parser  string   `yaml:"parser"`
-		UA      string   `yaml:"ua"`
-		URLs    []string `yaml:"urls"`
-		Custom  []string `yaml:"custom"`
-		Domains []string `yaml:"domains"`
-		RDNS    bool     `yaml:"rdns"`
-	}
+	var cfg botConfig
 
-	if err := yaml.Unmarshal(data, &tmp); err != nil {
+	if err := yaml.Unmarshal(data, &cfg); err != nil {
 		return nil, err
 	}
 
 	// Validate required Name field
-	if tmp.Name == "" {
+	if cfg.Name == "" {
 		if EnableLog {
 			log.Printf("[knownbots] skip %q: missing required 'name' field", filename)
 		}
 		return nil, nil
 	}
 
-	parser := tmp.Parser
+	parser := cfg.Parser
 	if parser == "" {
-		parser = tmp.Name
+		parser = cfg.Name
 	}
 
-	customNets := parseCIDRs(tmp.Custom)
+	customNets := parseCIDRs(cfg.Custom)
 	customValue := &atomic.Pointer[[]IPPrefix]{}
 	customValue.Store(&customNets)
 
 	return &Bot{
-		Name:    tmp.Name,
-		Kind:    tmp.Kind,
+		Name:    cfg.Name,
+		Kind:    cfg.Kind,
 		Parser:  parser,
-		UA:      tmp.UA,
-		URLs:    tmp.URLs,
+		UA:      cfg.UA,
+		URLs:    cfg.URLs,
 		custom:  customValue,
-		Domains: tmp.Domains,
-		RDNS:    tmp.RDNS,
+		Domains: cfg.Domains,
+		RDNS:    cfg.RDNS,
 	}, nil
 }
