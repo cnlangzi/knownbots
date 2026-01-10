@@ -1,6 +1,7 @@
 package knownbots
 
 import (
+	"log"
 	"net"
 	"net/netip"
 	"os"
@@ -92,6 +93,9 @@ func Load(dir string) ([]*Bot, error) {
 		}
 
 		// Custom bot overrides built-in bot with the same name
+		if _, exists := embedded[bot.Name]; exists {
+			log.Printf("[knownbots] custom config %q overrides built-in bot", bot.Name)
+		}
 		bots[bot.Name] = bot
 	}
 
