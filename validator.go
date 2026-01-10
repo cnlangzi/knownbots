@@ -16,21 +16,21 @@ const (
 )
 
 // ResultStatus represents the verification result status.
-type ResultStatus string
+type ResultStatus int
 
 const (
-	StatusVerified ResultStatus = "verified"
-	StatusFailed   ResultStatus = "failed"
-	StatusUnknown  ResultStatus = "unknown"
+	StatusVerified ResultStatus = 1 // IP verified successfully
+	StatusPending  ResultStatus = 2 // RDNS network error, can retry
+	StatusFailed   ResultStatus = 3 // IP not matched, suspected fake bot
+	StatusUnknown  ResultStatus = 0 // Not a bot (normal browser)
 )
 
 // Result represents the verification result.
 type Result struct {
-	BotName    string       `json:"bot_name"`
-	BotKind    BotKind      `json:"bot_kind"`
-	Status     ResultStatus `json:"status"`
-	IsBot      bool         `json:"is_bot"`
-	IsVerified bool         `json:"is_verified"`
+	BotName string       `json:"bot_name"`
+	BotKind BotKind      `json:"bot_kind"`
+	IsBot   bool         `json:"is_bot"`
+	Status  ResultStatus `json:"status"`
 }
 
 // Validator is the core bot verification engine.
@@ -175,31 +175,41 @@ func (v *Validator) Validate(ua, ip string) Result {
 		switch classifyUA(ua) {
 		case Browser:
 			// Valid browser structure → not a bot
-			return Result{Status: StatusUnknown, BotKind: KindUnknown, IsBot: false, IsVerified: false}
+			return Result{Status: StatusUnknown, BotKind: KindUnknown, IsBot: false}
 		case Suspicious:
 			// Claims to be browser but malformed → suspicious bot
-			return Result{Status: StatusUnknown, BotKind: KindUnknown, IsBot: true, IsVerified: false}
+			return Result{Status: StatusUnknown, BotKind: KindUnknown, IsBot: true}
 		default:
 			// Unknown (not browser-like)
-			return Result{Status: StatusUnknown, BotKind: KindUnknown, IsBot: true, IsVerified: false}
+			return Result{Status: StatusUnknown, BotKind: KindUnknown, IsBot: true}
 		}
 	}
 
 	// classifyUA disabled (default): unknown UA, assume not a bot
-	return Result{Status: StatusUnknown, BotKind: KindUnknown, IsBot: false, IsVerified: false}
+	return Result{Status: StatusUnknown, BotKind: KindUnknown, IsBot: false}
 }
 
 // verifyIP verifies if the IP belongs to the given bot.
 func (v *Validator) verifyIP(bot *Bot, ipStr string) Result {
+	// Check IP ranges first
 	if bot.ContainsIP(ipStr) {
-		return Result{BotName: bot.Name, BotKind: bot.Kind, Status: StatusVerified, IsVerified: true}
+		return Result{BotName: bot.Name, BotKind: bot.Kind, Status: StatusVerified, IsBot: true}
 	}
 
-	if bot.RDNS && bot.VerifyRDNS(ipStr) {
-		return Result{BotName: bot.Name, BotKind: bot.Kind, Status: StatusVerified, IsVerified: true}
+	// RDNS verification
+	if bot.RDNS {
+		switch bot.VerifyRDNS(ipStr) {
+		case VerifyStatusOK:
+			return Result{BotName: bot.Name, BotKind: bot.Kind, Status: StatusVerified, IsBot: true}
+		case VerifyStatusNetworkError:
+			return Result{BotName: bot.Name, BotKind: bot.Kind, Status: StatusPending, IsBot: true}
+		default:
+			return Result{BotName: bot.Name, BotKind: bot.Kind, Status: StatusFailed, IsBot: true}
+		}
 	}
 
-	return Result{BotName: bot.Name, BotKind: bot.Kind, Status: StatusFailed, IsVerified: false}
+	// No RDNS, IP not in ranges
+	return Result{BotName: bot.Name, BotKind: bot.Kind, Status: StatusFailed, IsBot: true}
 }
 
 // findBotByUA finds a bot by matching the UserAgent marker.

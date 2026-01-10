@@ -124,7 +124,7 @@ func BenchmarkValidate_KnownBot_IPHit(b *testing.B) {
 		for pb.Next() {
 			result := v.Validate(ua, ip)
 			if result.Status != StatusVerified {
-				b.Fatalf("expected verified, got %s", result.Status)
+				b.Fatalf("expected verified, got %d", result.Status)
 			}
 		}
 	})

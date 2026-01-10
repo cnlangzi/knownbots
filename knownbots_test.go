@@ -151,13 +151,13 @@ rdns: false
 	ua := "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)"
 	result := v.Validate(ua, "66.249.64.1")
 	if result.Status != StatusVerified {
-		t.Errorf("Expected verified, got %s", result.Status)
+		t.Errorf("Expected verified, got %d", result.Status)
 	}
 
 	// Test non-matching UA - malformed browser-like UA should be marked as bot
 	result = v.Validate("Mozilla/5.0", "66.249.64.1")
 	if result.Status != StatusUnknown {
-		t.Errorf("Expected unknown, got %s", result.Status)
+		t.Errorf("Expected unknown, got %d", result.Status)
 	}
 	if !result.IsBot {
 		t.Error("Expected IsBot=true for malformed browser-like UA")
@@ -306,32 +306,32 @@ rdns: false
 	ua := "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)"
 	result := v.Validate(ua, "66.249.64.1")
 	if result.Status != StatusVerified {
-		t.Errorf("Expected verified, got %s", result.Status)
+		t.Errorf("Expected verified, got %d", result.Status)
 	}
 	if !result.IsBot {
 		t.Error("Expected IsBot=true for known bot")
 	}
-	if !result.IsVerified {
-		t.Error("Expected IsVerified=true for verified IP")
+	if result.Status != StatusVerified {
+		t.Error("Expected Status=Verified for verified IP")
 	}
 
 	// Test 2: Known bot with unverified IP
 	result = v.Validate(ua, "1.2.3.4")
 	if result.Status != StatusFailed {
-		t.Errorf("Expected failed, got %s", result.Status)
+		t.Errorf("Expected failed, got %d", result.Status)
 	}
 	if !result.IsBot {
 		t.Error("Expected IsBot=true for known bot")
 	}
-	if result.IsVerified {
-		t.Error("Expected IsVerified=false for unverified IP")
+	if result.Status == StatusVerified {
+		t.Error("Expected Status!=Verified for unverified IP")
 	}
 
 	// Test 3: Legitimate browser (not a bot)
 	browserUA := "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 	result = v.Validate(browserUA, "192.168.1.1")
 	if result.Status != StatusUnknown {
-		t.Errorf("Expected unknown, got %s", result.Status)
+		t.Errorf("Expected unknown, got %d", result.Status)
 	}
 	if result.IsBot {
 		t.Error("Expected IsBot=false for legitimate browser")
@@ -340,7 +340,7 @@ rdns: false
 	// Test 4: Unknown bot (not a known bot, not a browser)
 	result = v.Validate("UnknownBot/1.0", "192.168.1.1")
 	if result.Status != StatusUnknown {
-		t.Errorf("Expected unknown, got %s", result.Status)
+		t.Errorf("Expected unknown, got %d", result.Status)
 	}
 	if !result.IsBot {
 		t.Error("Expected IsBot=true for unknown bot")
@@ -350,7 +350,7 @@ rdns: false
 	malformedUA := "Mozilla/5.0 AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36"
 	result = v.Validate(malformedUA, "192.168.1.1")
 	if result.Status != StatusUnknown {
-		t.Errorf("Expected unknown, got %s", result.Status)
+		t.Errorf("Expected unknown, got %d", result.Status)
 	}
 	if !result.IsBot {
 		t.Error("Expected IsBot=true for malformed browser-like UA")
@@ -389,7 +389,7 @@ rdns: false
 	// Unknown UA (not a known bot) should return IsBot=false when classifyUA is disabled
 	result := v.Validate("UnknownBot/1.0", "192.168.1.1")
 	if result.Status != StatusUnknown {
-		t.Errorf("Expected unknown, got %s", result.Status)
+		t.Errorf("Expected unknown, got %d", result.Status)
 	}
 	if result.IsBot {
 		t.Error("Expected IsBot=false for unknown UA when classifyUA is disabled")
