@@ -33,7 +33,7 @@ func setupBenchValidator(b *testing.B, botCount int) *Validator {
 		}
 	}
 
-	v, err := New(WithRoot(tmpDir), WithBuiltInBots(false))
+	v, err := New(WithRoot(tmpDir))
 	if err != nil {
 		b.Fatal(err)
 	}

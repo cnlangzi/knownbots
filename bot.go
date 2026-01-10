@@ -45,32 +45,15 @@ type Bot struct {
 	fail    *LRU          // failed IP cache for fast rejection
 }
 
-// LoadOptions holds options for loading bot configurations.
-type LoadOptions struct {
-	LoadBuiltIn bool // Whether to load built-in bots (default: true)
-}
-
 // Load loads all bot configurations from the bots directory.
 // It loads built-in bots from embedded configuration and then
 // loads custom bots from the conf.d subdirectory.
 // Custom bots override built-in bots with the same name.
 func Load(dir string) ([]*Bot, error) {
-	return LoadWithOptions(dir, LoadOptions{LoadBuiltIn: true})
-}
-
-// LoadWithOptions loads bot configurations with additional options.
-func LoadWithOptions(dir string, opts LoadOptions) ([]*Bot, error) {
-	var embedded map[string]*Bot
-	var err error
-
-	// Load built-in bots if enabled
-	if opts.LoadBuiltIn {
-		embedded, err = loadEmbedded()
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		embedded = make(map[string]*Bot)
+	// First, load all built-in bots
+	embedded, err := loadEmbedded()
+	if err != nil {
+		return nil, err
 	}
 
 	// Then, load custom bots from user's directory

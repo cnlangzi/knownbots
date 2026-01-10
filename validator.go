@@ -3,7 +3,6 @@ package knownbots
 import (
 	"bufio"
 	"context"
-	"embed"
 	"fmt"
 	"log"
 	"net/http"
@@ -15,9 +14,6 @@ import (
 
 	"github.com/cnlangzi/knownbots/parser"
 )
-
-// go: embed bots/conf.d/*.yaml
-var conf embed.FS
 
 // Default settings
 const (
@@ -82,11 +78,10 @@ func buildUAIndex(bots []*Bot) map[byte][]*Bot {
 
 // Config holds the options for creating a Validator.
 type Config struct {
-	Root        string
-	Interval    time.Duration
-	FailLimit   int
-	ClassifyUA  bool
-	LoadBuiltIn bool
+	Root       string
+	Interval   time.Duration
+	FailLimit  int
+	ClassifyUA bool
 }
 
 // Option is a functional option for configuring a Validator.
@@ -122,31 +117,19 @@ func WithClassifyUA() Option {
 	}
 }
 
-// WithBuiltInBots enables or disables loading of built-in bot configurations.
-// Default: true (built-in bots are loaded).
-// Set to false to use only custom bots from WithRoot directory.
-func WithBuiltInBots(enabled bool) Option {
-	return func(c *Config) {
-		c.LoadBuiltIn = enabled
-	}
-}
-
 // New creates a new Validator instance with background scheduler.
 func New(opts ...Option) (*Validator, error) {
 	cfg := Config{
-		Root:        "./bots",
-		Interval:    SchedulerInterval,
-		FailLimit:   FailLRULimit,
-		ClassifyUA:  false, // Default: skip classifyUA for performance
-		LoadBuiltIn: true,  // Default: load built-in bots
+		Root:       "./bots",
+		Interval:   SchedulerInterval,
+		FailLimit:  FailLRULimit,
+		ClassifyUA: false, // Default: skip classifyUA for performance
 	}
 	for _, opt := range opts {
 		opt(&cfg)
 	}
 
-	bots, err := LoadWithOptions(cfg.Root, LoadOptions{
-		LoadBuiltIn: cfg.LoadBuiltIn,
-	})
+	bots, err := Load(cfg.Root)
 	if err != nil {
 		return nil, err
 	}

@@ -1,7 +1,6 @@
 package knownbots
 
 import (
-	"bytes"
 	"embed"
 	"io/fs"
 	"path/filepath"
@@ -15,7 +14,6 @@ import (
 var embeddedBots embed.FS
 
 // loadEmbedded loads all built-in bot configurations from the embedded filesystem.
-// It returns a map of bot name to Bot for quick lookup.
 func loadEmbedded() (map[string]*Bot, error) {
 	bots := make(map[string]*Bot)
 
@@ -29,7 +27,7 @@ func loadEmbedded() (map[string]*Bot, error) {
 		}
 
 		ext := strings.ToLower(filepath.Ext(path))
-		if ext != ".yaml" && ext != ".yml" {
+		if ext != ".yaml" {
 			return nil
 		}
 
@@ -71,7 +69,6 @@ func parseBotConfig(data []byte) (*Bot, error) {
 		return nil, err
 	}
 
-	// Use bot name as default parser if not specified
 	parser := tmp.Parser
 	if parser == "" {
 		parser = tmp.Name
@@ -91,86 +88,4 @@ func parseBotConfig(data []byte) (*Bot, error) {
 		Domains: tmp.Domains,
 		RDNS:    tmp.RDNS,
 	}, nil
-}
-
-// embeddedBotsFS returns the embedded bots filesystem for external use.
-func embeddedBotsFS() embed.FS {
-	return embeddedBots
-}
-
-// EmbeddedBotNames returns the list of all built-in bot names.
-// Useful for debugging or documentation.
-func EmbeddedBotNames() []string {
-	bots, _ := loadEmbedded()
-	names := make([]string, 0, len(bots))
-	for name := range bots {
-		names = append(names, name)
-	}
-	return names
-}
-
-// LoadEmbeddedBot loads a single built-in bot configuration by name.
-// Returns nil if the bot is not found.
-func LoadEmbeddedBot(name string) *Bot {
-	bots, _ := loadEmbedded()
-	return bots[name]
-}
-
-// IsEmbeddedBot returns true if the given bot name is a built-in bot.
-func IsEmbeddedBot(name string) bool {
-	bots, _ := loadEmbedded()
-	_, ok := bots[name]
-	return ok
-}
-
-// EmbeddedBotCount returns the number of built-in bots.
-func EmbeddedBotCount() int {
-	bots, _ := loadEmbedded()
-	return len(bots)
-}
-
-// ReadEmbeddedBotConfig reads the raw YAML configuration for a built-in bot.
-// Returns the raw bytes of the config file.
-func ReadEmbeddedBotConfig(name string) ([]byte, error) {
-	bots, err := loadEmbedded()
-	if err != nil {
-		return nil, err
-	}
-
-	bot, ok := bots[name]
-	if !ok {
-		return nil, nil
-	}
-
-	// Reconstruct YAML from the bot struct
-	customSlice := parseCustomToString(bot.custom.Load().([]IPPrefix))
-
-	var buf bytes.Buffer
-	encoder := yaml.NewEncoder(&buf)
-	defer encoder.Close()
-
-	err = encoder.Encode(map[string]interface{}{
-		"kind":    bot.Kind,
-		"name":    bot.Name,
-		"parser":  bot.Parser,
-		"ua":      bot.UA,
-		"urls":    bot.URLs,
-		"custom":  customSlice,
-		"domains": bot.Domains,
-		"rdns":    bot.RDNS,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return buf.Bytes(), nil
-}
-
-// parseCustomToString converts custom networks back to string format.
-func parseCustomToString(nets []IPPrefix) []string {
-	var result []string
-	for _, net := range nets {
-		result = append(result, net.String())
-	}
-	return result
 }
