@@ -232,7 +232,7 @@ rdns: false
 		t.Fatalf("Failed to write config: %v", err)
 	}
 
-	v, err := New(WithRoot(tmpDir))
+	v, err := New(WithRoot(tmpDir), WithClassifyUA(true))
 	if err != nil {
 		t.Fatalf("Failed to create validator: %v", err)
 	}

@@ -123,7 +123,7 @@ func New(opts ...Option) (*Validator, error) {
 		Root:       "./bots",
 		Interval:   SchedulerInterval,
 		FailLimit:  FailLRULimit,
-		ClassifyUA: true,
+		ClassifyUA: false, // Default: skip classifyUA for performance
 	}
 	for _, opt := range opts {
 		opt(&cfg)
