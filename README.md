@@ -21,12 +21,14 @@
 - **Zero-allocation hot paths** using `netip.Prefix` for IP matching
 - **Byte-level indexing** for O(1) bot lookup (150-300ns for 40 bots vs 640ns linear scan)
 - **Copy-on-Write caching** optimized for read-heavy workloads (1-20 writes/day)
+- **Embedded bots** - 57 built-in configs compiled into binary (no file I/O at startup)
+- **Optional UA classification** - Disabled by default for maximum performance
 
 ### 🔒 Security First
 - **Case-sensitive matching** prevents forgery attempts (official bots use fixed casing)
 - **Word boundary validation** prevents partial matches (e.g., "MyGooglebot" won't match)
 - **LRU fail cache** for fast rejection of known-bad IPs (1000 entry limit)
-- **Browser detection** distinguishes legitimate users from suspicious bot-like patterns
+- **Browser detection** distinguishes legitimate users from suspicious bot-like patterns (opt-in)
 
 ### 📦 Production Ready
 - **Persistent RDNS cache** survives restarts (file-based storage)
@@ -114,6 +116,7 @@ v, err := knownbots.New(
     knownbots.WithRoot("./custom-bots"),           // Custom bot config directory
     knownbots.WithSchedulerInterval(12*time.Hour), // IP refresh frequency
     knownbots.WithFailLimit(5000),                 // Failed lookup cache size
+    knownbots.WithClassifyUA(),                    // Enable UA classification (disabled by default)
 )
 ```
 
