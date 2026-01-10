@@ -18,14 +18,14 @@ func setupBenchValidator(b *testing.B, botCount int) *Validator {
 	}
 
 	botNames := []string{
-		"Googlebot", "Bingbot", "Slurp", "DuckDuckBot", "Baiduspider",
-		"YandexBot", "Sogou", "facebookexternalhit", "Twitterbot", "LinkedInBot",
-		"TelegramBot", "Discordbot", "Slackbot", "WhatsApp", "Applebot",
-		"AhrefsBot", "SemrushBot", "MJ12bot", "ScreamingFrog", "PetalBot",
-		"Bytespider", "SeznamBot", "Exabot", "DotBot", "rogerbot",
-		"archive_bot", "ia_archiver", "BLEXBot", "GPTBot", "Claude-Web",
-		"anthropic-ai", "Pinterestbot", "facebookcatalog", "Tumblr", "Mastodon",
-		"PiplBot", "SentiBot", "DataForSeoBot", "MegaIndex", "SiteAuditBot",
+		"TestBot1", "TestBot2", "TestBot3", "TestBot4", "TestBot5",
+		"TestBot6", "TestBot7", "TestBot8", "TestBot9", "TestBot10",
+		"TestBot11", "TestBot12", "TestBot13", "TestBot14", "TestBot15",
+		"TestBot16", "TestBot17", "TestBot18", "TestBot19", "TestBot20",
+		"TestBot21", "TestBot22", "TestBot23", "TestBot24", "TestBot25",
+		"TestBot26", "TestBot27", "TestBot28", "TestBot29", "TestBot30",
+		"TestBot31", "TestBot32", "TestBot33", "TestBot34", "TestBot35",
+		"TestBot36", "TestBot37", "TestBot38", "TestBot39", "TestBot40",
 	}
 
 	for i := 0; i < botCount && i < len(botNames); i++ {
@@ -46,7 +46,8 @@ func setupBenchValidator(b *testing.B, botCount int) *Validator {
 
 func BenchmarkFindBotByUA_Hit_First(b *testing.B) {
 	v := setupBenchValidator(b, 40)
-	ua := "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)"
+	defer v.Close()
+	ua := "Mozilla/5.0 (compatible; TestBot1/2.1; +http://example.com/bot.html)"
 
 	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
@@ -60,7 +61,8 @@ func BenchmarkFindBotByUA_Hit_First(b *testing.B) {
 
 func BenchmarkFindBotByUA_Hit_Middle(b *testing.B) {
 	v := setupBenchValidator(b, 40)
-	ua := "Mozilla/5.0 (compatible; DuckDuckBot/1.0)"
+	defer v.Close()
+	ua := "Mozilla/5.0 (compatible; TestBot2/1.0)"
 
 	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
@@ -74,7 +76,8 @@ func BenchmarkFindBotByUA_Hit_Middle(b *testing.B) {
 
 func BenchmarkFindBotByUA_Hit_Last(b *testing.B) {
 	v := setupBenchValidator(b, 40)
-	ua := "Mozilla/5.0 (compatible; SiteAuditBot/1.0)"
+	defer v.Close()
+	ua := "Mozilla/5.0 (compatible; TestBot40/1.0)"
 
 	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
@@ -88,6 +91,7 @@ func BenchmarkFindBotByUA_Hit_Last(b *testing.B) {
 
 func BenchmarkFindBotByUA_Miss(b *testing.B) {
 	v := setupBenchValidator(b, 40)
+	defer v.Close()
 	ua := "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"
 
 	b.ResetTimer()
@@ -102,7 +106,8 @@ func BenchmarkFindBotByUA_Miss(b *testing.B) {
 
 func BenchmarkFindBotByUA_CaseSensitive(b *testing.B) {
 	v := setupBenchValidator(b, 40)
-	ua := "Mozilla/5.0 (compatible; Googlebot/2.1)"
+	defer v.Close()
+	ua := "Mozilla/5.0 (compatible; TestBot1/2.1)"
 
 	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
@@ -116,7 +121,8 @@ func BenchmarkFindBotByUA_CaseSensitive(b *testing.B) {
 
 func BenchmarkValidate_KnownBot_IPHit(b *testing.B) {
 	v := setupBenchValidator(b, 40)
-	ua := "Mozilla/5.0 (compatible; Googlebot/2.1)"
+	defer v.Close()
+	ua := "Mozilla/5.0 (compatible; TestBot1/2.1)"
 	ip := "192.168.1.100"
 
 	b.ResetTimer()
@@ -132,6 +138,7 @@ func BenchmarkValidate_KnownBot_IPHit(b *testing.B) {
 
 func BenchmarkValidate_Browser(b *testing.B) {
 	v := setupBenchValidator(b, 40)
+	defer v.Close()
 	ua := "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 	ip := "192.168.1.1"
 
