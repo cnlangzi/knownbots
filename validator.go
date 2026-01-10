@@ -263,10 +263,11 @@ func writeIPs(path string, prefixes []netip.Prefix) {
 }
 
 // Validate verifies if the given UserAgent and IP belong to a known bot.
-// Returns a Result with:
-//   - IsBot: true if UA matches a known bot, false if it's a legitimate browser
+// By default (classifyUA disabled), unknown UAs return IsBot=false for performance.
+// When WithClassifyUA() is enabled:
+//   - IsBot: true if UA matches a known bot or is suspicious, false if it's a legitimate browser
 //   - IsVerified: true if the IP is verified for the bot
-//   - Status: verified (bot confirmed), failed (bot suspected, IP not verified), or unknown (not a bot or browser)
+//   - Status: verified (bot confirmed), failed (bot suspected, IP not verified), or unknown
 func (v *Validator) Validate(ua, ip string) Result {
 	// Step 1: Check if UA matches any known bot (claims to be a known bot)
 	if bot := v.findBotByUA(ua); bot != nil {
@@ -285,12 +286,12 @@ func (v *Validator) Validate(ua, ip string) Result {
 			// Claims to be browser but malformed → suspicious bot
 			return Result{Status: StatusUnknown, IsBot: true, IsVerified: false}
 		default:
-			//unknown bot
+			// Unknown (not browser-like)
 			return Result{Status: StatusUnknown, IsBot: true, IsVerified: false}
 		}
 	}
 
-	// classifyUA disabled: unknown UA, assume not a bot
+	// classifyUA disabled (default): unknown UA, assume not a bot
 	return Result{Status: StatusUnknown, IsBot: false, IsVerified: false}
 }
 
