@@ -108,12 +108,12 @@ func WithFailLimit(limit int) Option {
 	}
 }
 
-// WithClassifyUA enables or disables UA classification for non-bot UAs.
-// When disabled, classifyUA is skipped for faster performance.
-// Default: true (classifyUA is executed)
-func WithClassifyUA(enabled bool) Option {
+// WithClassifyUA enables UA classification for non-bot UAs.
+// By default, classifyUA is disabled for performance.
+// Enable it to distinguish legitimate browsers from suspicious UAs.
+func WithClassifyUA() Option {
 	return func(c *Config) {
-		c.ClassifyUA = enabled
+		c.ClassifyUA = true
 	}
 }
 
