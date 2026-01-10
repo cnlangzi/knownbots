@@ -158,7 +158,7 @@ rdns: false               # Enable RDNS verification (default: false, use URLs i
 ### Configuration Loading
 
 The `Load()` function:
-1. Loads all 57 built-in bots from embedded configuration
+1. Loads all 57 built-in bots from embedded configuration files
 2. Loads custom bots from `./bots/conf.d/` (if directory exists)
 3. Custom bots override built-in bots with the same name (with warning log)
 
