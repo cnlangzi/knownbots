@@ -9,8 +9,8 @@ import (
 
 type GoogleParser struct{}
 
-// googleIPResponse represents the JSON response from Google's IP range API.
-type googleIPResponse struct {
+// googleResponse represents the JSON response from Google's IP range API.
+type googleResponse struct {
 	Prefixes []struct {
 		IPv4Prefix string `json:"ipv4Prefix"`
 		IPv6Prefix string `json:"ipv6Prefix"`
@@ -27,7 +27,7 @@ func (p *GoogleParser) Parse(r io.Reader) ([]netip.Prefix, error) {
 		return nil, fmt.Errorf("failed to read data: %w", err)
 	}
 
-	var resp googleIPResponse
+	var resp googleResponse
 	if err := json.Unmarshal(data, &resp); err != nil {
 		return nil, fmt.Errorf("failed to parse google json: %w", err)
 	}

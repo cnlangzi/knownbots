@@ -9,8 +9,8 @@ import (
 
 type StripeParser struct{}
 
-// stripeIPResponse represents the JSON response from Stripe's webhook IP API.
-type stripeIPResponse struct {
+// stripeResponse represents the JSON response from Stripe's webhook IP API.
+type stripeResponse struct {
 	WEBHOOKS []string `json:"WEBHOOKS"`
 }
 
@@ -24,7 +24,7 @@ func (p *StripeParser) Parse(r io.Reader) ([]netip.Prefix, error) {
 		return nil, fmt.Errorf("failed to read data: %w", err)
 	}
 
-	var resp stripeIPResponse
+	var resp stripeResponse
 	if err := json.Unmarshal(data, &resp); err != nil {
 		return nil, fmt.Errorf("failed to parse stripe json: %w", err)
 	}

@@ -9,8 +9,8 @@ import (
 
 type GitHubParser struct{}
 
-// githubIPResponse represents the JSON response from GitHub's IP API.
-type githubIPResponse struct {
+// githubResponse represents the JSON response from GitHub's IP API.
+type githubResponse struct {
 	Hooks []string `json:"hooks"`
 	Web   []string `json:"web"`
 	API   []string `json:"api"`
@@ -26,7 +26,7 @@ func (p *GitHubParser) Parse(r io.Reader) ([]netip.Prefix, error) {
 		return nil, fmt.Errorf("failed to read data: %w", err)
 	}
 
-	var resp githubIPResponse
+	var resp githubResponse
 	if err := json.Unmarshal(data, &resp); err != nil {
 		return nil, fmt.Errorf("failed to parse github json: %w", err)
 	}
