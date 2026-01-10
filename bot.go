@@ -212,9 +212,14 @@ func (b *Bot) VerifyRDNS(ipStr string) ResultStatus {
 
 	// Perform RDNS lookup
 	names, err := net.LookupAddr(ipStr)
-	if err != nil || len(names) == 0 {
+	if err != nil {
 		// Network error - allow retry, do not add to fail cache
 		return StatusPending
+	}
+	if len(names) == 0 {
+		// No PTR records - verification failed, add to fail cache
+		b.fail.Add(ipStr)
+		return StatusFailed
 	}
 
 	hostname := strings.TrimSuffix(names[0], ".")
