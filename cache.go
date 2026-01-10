@@ -11,7 +11,7 @@ import (
 // Cache provides thread-safe reverse DNS lookup caching.
 // It stores successfully verified IP→hostname mappings (persistent).
 type Cache struct {
-	valid atomic.Value // *map[string]string (read-heavy, lock-free reads)
+	valid atomic.Pointer[map[string]string] // *map[string]string (read-heavy, lock-free reads)
 	file  string
 }
 
@@ -36,26 +36,26 @@ func NewCache(filePath string) (*Cache, error) {
 
 // Get retrieves a value from the cache.
 func (c *Cache) Get(key string) (string, bool) {
-	m := c.valid.Load().(map[string]string)
-	val, ok := m[key]
+	m := c.valid.Load()
+	val, ok := (*m)[key]
 	return val, ok
 }
 
 // Set stores a successful lookup result in the cache.
 func (c *Cache) Set(key, value string) {
-	old := c.valid.Load().(map[string]string)
+	old := c.valid.Load()
 	// Check if already exists (fast path)
-	if _, ok := old[key]; ok {
+	if _, ok := (*old)[key]; ok {
 		return
 	}
 	// Create new map with the entry
-	new := make(map[string]string, len(old)+1)
-	for k, v := range old {
-		new[k] = v
+	newMap := make(map[string]string, len(*old)+1)
+	for k, v := range *old {
+		newMap[k] = v
 	}
-	new[key] = value
+	newMap[key] = value
 	// Store the new map atomically
-	c.valid.Store(new)
+	c.valid.Store(&newMap)
 }
 
 // loadFromFile loads cache entries from the persistent file.
@@ -64,7 +64,8 @@ func (c *Cache) loadFromFile() error {
 	if err != nil {
 		if os.IsNotExist(err) {
 			// Initialize with empty map
-			c.valid.Store(make(map[string]string))
+			m := make(map[string]string)
+			c.valid.Store(&m)
 			return nil
 		}
 		return err
@@ -86,13 +87,13 @@ func (c *Cache) loadFromFile() error {
 		m[ip] = hostname
 	}
 
-	c.valid.Store(m)
+	c.valid.Store(&m)
 	return scanner.Err()
 }
 
 // Persist writes all entries to the persistent file.
 func (c *Cache) Persist() error {
-	m := c.valid.Load().(map[string]string)
+	m := c.valid.Load()
 
 	f, err := os.Create(c.file)
 	if err != nil {
@@ -101,7 +102,7 @@ func (c *Cache) Persist() error {
 	defer f.Close()
 
 	w := bufio.NewWriter(f)
-	for ip, hostname := range m {
+	for ip, hostname := range *m {
 		if _, err := fmt.Fprintf(w, "%s %s\n", ip, hostname); err != nil {
 			return err
 		}
@@ -111,22 +112,22 @@ func (c *Cache) Persist() error {
 
 // Prune removes entries from the cache that are no longer valid.
 func (c *Cache) Prune(domains []string) {
-	old := c.valid.Load().(map[string]string)
-	new := make(map[string]string, len(old))
+	old := c.valid.Load()
+	newMap := make(map[string]string, len(*old))
 
-	for ip, hostname := range old {
+	for ip, hostname := range *old {
 		if matchDomain(hostname, domains) {
-			new[ip] = hostname
+			newMap[ip] = hostname
 		}
 	}
 
-	c.valid.Store(new)
+	c.valid.Store(&newMap)
 }
 
 // Size returns the number of entries in the cache.
 func (c *Cache) Size() int {
-	m := c.valid.Load().(map[string]string)
-	return len(m)
+	m := c.valid.Load()
+	return len(*m)
 }
 
 // Close is a no-op. Cache persistence is handled by Persist().

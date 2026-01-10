@@ -178,7 +178,7 @@ func TestContainsIP(t *testing.T) {
 
 	for _, tt := range tests {
 		bot := &Bot{
-			custom: &atomic.Value{},
+			custom: &atomic.Pointer[[]IPPrefix]{},
 		}
 		prefix, _ := netip.ParsePrefix(tt.cidr)
 		bot.SetCustom([]netip.Prefix{prefix})
@@ -555,9 +555,9 @@ custom:
 	}
 
 	// Should have parsed the valid CIDR
-	prefixes := bot.custom.Load().([]IPPrefix)
-	if len(prefixes) != 1 {
-		t.Errorf("Expected 1 valid CIDR, got %d", len(prefixes))
+	prefixes := bot.custom.Load()
+	if len(*prefixes) != 1 {
+		t.Errorf("Expected 1 valid CIDR, got %d", len(*prefixes))
 	}
 }
 

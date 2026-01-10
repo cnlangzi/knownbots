@@ -34,16 +34,16 @@ const (
 
 // Bot represents the configuration for a single bot.
 type Bot struct {
-	Name    string        `yaml:"name"`
-	Kind    BotKind       `yaml:"kind"`
-	Parser  string        `yaml:"parser"` // parser name, defaults to bot name
-	UA      string        `yaml:"ua"`
-	URLs    []string      `yaml:"urls"`
-	custom  *atomic.Value // []IPPrefix, atomic for lock-free reads
-	Domains []string      `yaml:"domains"`
-	RDNS    bool          `yaml:"rdns"` // whether to perform RDNS verification
-	Cache   *Cache        // RDNS cache, initialized by Validator
-	fail    *LRU          // failed IP cache for fast rejection
+	Name    string                      `yaml:"name"`
+	Kind    BotKind                     `yaml:"kind"`
+	Parser  string                      `yaml:"parser"` // parser name, defaults to bot name
+	UA      string                      `yaml:"ua"`
+	URLs    []string                    `yaml:"urls"`
+	custom  *atomic.Pointer[[]IPPrefix] // []IPPrefix, atomic for lock-free reads
+	Domains []string                    `yaml:"domains"`
+	RDNS    bool                        `yaml:"rdns"` // whether to perform RDNS verification
+	Cache   *Cache                      // RDNS cache, initialized by Validator
+	fail    *LRU                        // failed IP cache for fast rejection
 }
 
 // Load loads all bot configurations from the bots directory.
@@ -149,8 +149,8 @@ func loadBot(path string) (*Bot, error) {
 	}
 
 	customNets := parseCIDRs(tmp.Custom)
-	customValue := &atomic.Value{}
-	customValue.Store(customNets)
+	customValue := &atomic.Pointer[[]IPPrefix]{}
+	customValue.Store(&customNets)
 
 	return &Bot{
 		Name:    tmp.Name,
@@ -178,7 +178,7 @@ func parseCIDRs(cidrs []string) []IPPrefix {
 
 // SetCustom atomically updates the custom IP list.
 func (b *Bot) SetCustom(prefixes []netip.Prefix) {
-	b.custom.Store(prefixes)
+	b.custom.Store(&prefixes)
 }
 
 // ContainsIP checks if the IP is in the bot's custom IP ranges.
@@ -188,8 +188,8 @@ func (b *Bot) ContainsIP(ipStr string) bool {
 		return false
 	}
 
-	custom := b.custom.Load().([]IPPrefix)
-	for _, prefix := range custom {
+	custom := b.custom.Load()
+	for _, prefix := range *custom {
 		if prefix.Contains(ip) {
 			return true
 		}

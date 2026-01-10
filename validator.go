@@ -35,8 +35,8 @@ type Result struct {
 // Validator is the core bot verification engine.
 type Validator struct {
 	root       string
-	bots       atomic.Value // []*Bot, atomic for lock-free reads
-	uaIndex    atomic.Value // map[byte][]*Bot, byte-level index for UA lookup
+	bots       atomic.Pointer[[]*Bot]          // []*Bot, atomic for lock-free reads
+	uaIndex    atomic.Pointer[map[byte][]*Bot] // map[byte][]*Bot, byte-level index for UA lookup
 	cancel     context.CancelFunc
 	interval   time.Duration
 	failLimit  int
@@ -45,13 +45,14 @@ type Validator struct {
 
 // getBots returns the current bots slice atomically.
 func (v *Validator) getBots() []*Bot {
-	return v.bots.Load().([]*Bot)
+	return *v.bots.Load()
 }
 
 // setBots stores the bots slice atomically and builds the UA index.
 func (v *Validator) setBots(bots []*Bot) {
-	v.bots.Store(bots)
-	v.uaIndex.Store(buildUAIndex(bots))
+	uaIndex := buildUAIndex(bots)
+	v.bots.Store(&bots)
+	v.uaIndex.Store(&uaIndex)
 }
 
 // New creates a new Validator instance with background scheduler.
@@ -207,10 +208,10 @@ func (v *Validator) findBotByUA(ua string) *Bot {
 		return nil
 	}
 
-	index := v.uaIndex.Load().(map[byte][]*Bot)
+	index := v.uaIndex.Load()
 
 	for i := 0; i < len(ua); i++ {
-		candidates := index[ua[i]]
+		candidates := (*index)[ua[i]]
 		if len(candidates) == 0 {
 			continue
 		}

@@ -253,7 +253,7 @@ func TestBotContainsIP(t *testing.T) {
 	bot := &Bot{
 		Name:   "testbot",
 		UA:     "TestBot",
-		custom: &atomic.Value{},
+		custom: &atomic.Pointer[[]IPPrefix]{},
 	}
 
 	// Set some IP ranges
@@ -284,15 +284,16 @@ func TestBotContainsIP(t *testing.T) {
 func TestBotSetCustom(t *testing.T) {
 	bot := &Bot{
 		Name:   "testbot",
-		custom: &atomic.Value{},
+		custom: &atomic.Pointer[[]IPPrefix]{},
 	}
 
 	// Initialize with empty slice
-	bot.custom.Store([]netip.Prefix{})
+	empty := []netip.Prefix{}
+	bot.custom.Store(&empty)
 
 	// Initially empty
-	custom := bot.custom.Load().([]netip.Prefix)
-	if len(custom) != 0 {
+	custom := bot.custom.Load()
+	if len(*custom) != 0 {
 		t.Error("expected empty custom IPs initially")
 	}
 
@@ -303,8 +304,8 @@ func TestBotSetCustom(t *testing.T) {
 	bot.SetCustom(prefixes)
 
 	// Verify
-	custom = bot.custom.Load().([]netip.Prefix)
-	if len(custom) != 1 {
+	custom = bot.custom.Load()
+	if len(*custom) != 1 {
 		t.Error("expected 1 custom IP after SetCustom")
 	}
 }

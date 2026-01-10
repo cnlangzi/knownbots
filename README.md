@@ -17,7 +17,7 @@
 ## Key Features
 
 ### 🚀 High Performance
-- **Lock-free reads** via `atomic.Value` for bot configuration and RDNS cache
+- **Lock-free reads** via `atomic.Pointer[T]` for bot configuration and RDNS cache
 - **Zero-allocation hot paths** using `netip.Prefix` for IP matching
 - **Byte-level indexing** for O(1) bot lookup (150-300ns for 40 bots vs 640ns linear scan)
 - **Copy-on-Write caching** optimized for read-heavy workloads (1-20 writes/day)
@@ -427,8 +427,13 @@ go test -cover ./...
 
 ## Architecture Decisions
 
-### Why atomic.Value instead of RWMutex?
-Bot configurations change rarely (on reload/schedule, 1-20x/day) but are read on every request (1000s/sec). Lock-free reads via `atomic.Value` eliminate contention and provide consistent sub-microsecond performance.
+### Why atomic.Pointer[T] instead of RWMutex?
+Bot configurations change rarely (on reload/schedule, 1-20x/day) but are read on every request (1000s/sec). `atomic.Pointer[T]` provides:
+- **Lock-free reads** - single atomic load, no lock acquisition overhead
+- **Readers never block** - writes don't wait for readers, readers don't wait for writes (Copy-on-Write)
+- **Consistent performance** - no priority inversion or cache line contention from lock operations
+
+Consistent sub-microsecond performance for read-heavy workloads.
 
 ### Why case-sensitive UA matching?
 Official bots use **fixed casing** ("Googlebot", never "googlebot"). Case variations indicate forgery. Case-sensitive matching:
