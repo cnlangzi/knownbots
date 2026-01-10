@@ -31,6 +31,7 @@ func setupTestValidator(tb testing.TB) *Validator {
 		ua      string
 		cidrs   []string
 		domains []string
+		urls    []string
 	}{
 		{
 			name:    "googlebot",
@@ -51,10 +52,10 @@ func setupTestValidator(tb testing.TB) *Validator {
 			domains: []string{"yahoo.com"},
 		},
 		{
-			name:    "duckduckbot",
-			ua:      "DuckDuckBot",
-			cidrs:   []string{"50.16.0.0/14", "50.20.0.0/14"},
-			domains: []string{"duckduckgo.com"},
+			name:  "duckduckbot",
+			ua:    "DuckDuckBot",
+			cidrs: []string{"104.43.54.127/32", "20.50.48.192/32"},
+			urls:  []string{"https://duckduckgo.com/duckduckbot.json"},
 		},
 		{
 			name:    "yandexbot",
@@ -74,16 +75,25 @@ custom:
 				s += "  - \"" + cidr + "\"\n"
 			}
 			return s
-		}() + `domains:
-` + func() string {
-			s := ""
-			for _, domain := range bot.domains {
-				s += "  - \"" + domain + "\"\n"
+		}() + func() string {
+			if len(bot.domains) > 0 {
+				s := "domains:\n"
+				for _, domain := range bot.domains {
+					s += "  - \"" + domain + "\"\n"
+				}
+				return s
 			}
-			return s
-		}() + `rdns: false
-urls: []
-`
+			return ""
+		}() + func() string {
+			if len(bot.urls) > 0 {
+				s := "urls:\n"
+				for _, url := range bot.urls {
+					s += "  - \"" + url + "\"\n"
+				}
+				return s
+			}
+			return ""
+		}()
 		configPath := filepath.Join(confDir, bot.name+".yaml")
 		if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
 			tb.Fatalf("Failed to write config for %s: %v", bot.name, err)
@@ -112,7 +122,7 @@ func BenchmarkValidate_WithBotUA(b *testing.B) {
 		{"Googlebot", "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)", "66.249.64.1"},
 		{"Bingbot", "Mozilla/5.0 (compatible; bingbot/2.0; +http://www.bing.com/bingbot.htm)", "40.76.0.1"},
 		{"Slurp", "Mozilla/5.0 (compatible; Yahoo! Slurp; http://help.yahoo.com/help/us/ysearch/slurp)", "199.96.0.1"},
-		{"DuckDuckBot", "Mozilla/5.0 (compatible; DuckDuckBot/1.0; +https://duckduckgo.com/duckduckbot)", "50.16.0.1"},
+		{"DuckDuckBot", "Mozilla/5.0 (compatible; DuckDuckBot/1.0; +https://duckduckgo.com/duckduckbot)", "104.43.54.127"},
 		{"YandexBot", "Mozilla/5.0 (compatible; YandexBot/3.0; +http://yandex.com/bots)", "100.43.0.1"},
 	}
 
@@ -216,7 +226,7 @@ func BenchmarkContainsIP(b *testing.B) {
 		"40.77.0.1",     // Bingbot
 		"1.2.3.4",       // Not in any range
 		"199.96.0.1",    // Slurp
-		"50.16.0.1",     // DuckDuckBot
+		"104.43.54.127", // DuckDuckBot
 	}
 
 	bot := v.getBots()[0] // Use Googlebot
