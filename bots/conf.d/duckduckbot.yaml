@@ -1,8 +1,9 @@
 # DuckDuckGo bot
-# https://developers.cloudflare.com/bots/concepts/bot/verified-bots/
+# Official IP list: https://duckduckgo.com/duckduckbot.json
+# Supports IP-based verification (no RDNS needed)
 kind: SearchEngine
 name: duckduckbot
+parser: google
 ua: "DuckDuckBot"
-rdns: true
-domains:
-  - "duckduckgo.com"
+urls:
+  - "https://duckduckgo.com/duckduckbot.json"
