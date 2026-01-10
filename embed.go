@@ -3,6 +3,7 @@ package knownbots
 import (
 	"embed"
 	"io/fs"
+	"log"
 	"path/filepath"
 	"strings"
 	"sync/atomic"
@@ -36,9 +37,12 @@ func loadEmbedded() (map[string]*Bot, error) {
 			return err
 		}
 
-		bot, err := parseBotConfig(data)
+		bot, err := parseBotConfig(data, path)
 		if err != nil {
 			return err
+		}
+		if bot == nil {
+			return nil
 		}
 
 		bots[bot.Name] = bot
@@ -53,7 +57,7 @@ func loadEmbedded() (map[string]*Bot, error) {
 }
 
 // parseBotConfig parses bot configuration from YAML data.
-func parseBotConfig(data []byte) (*Bot, error) {
+func parseBotConfig(data []byte, filename string) (*Bot, error) {
 	var tmp struct {
 		Name    string   `yaml:"name"`
 		Kind    BotKind  `yaml:"kind"`
@@ -67,6 +71,12 @@ func parseBotConfig(data []byte) (*Bot, error) {
 
 	if err := yaml.Unmarshal(data, &tmp); err != nil {
 		return nil, err
+	}
+
+	// Validate required Name field
+	if tmp.Name == "" {
+		log.Printf("[knownbots] skip %q: missing required 'name' field", filename)
+		return nil, nil
 	}
 
 	parser := tmp.Parser

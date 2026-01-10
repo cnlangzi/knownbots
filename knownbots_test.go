@@ -511,6 +511,27 @@ func TestLoadBotInvalidYAML(t *testing.T) {
 	}
 }
 
+func TestLoadBotMissingName(t *testing.T) {
+	tmpDir := t.TempDir()
+	path := filepath.Join(tmpDir, "missing-name.yaml")
+	// Config without 'name' field
+	config := `ua: "TestBot"
+custom:
+  - "192.168.1.0/24"
+`
+	if err := os.WriteFile(path, []byte(config), 0644); err != nil {
+		t.Fatalf("Failed to write file: %v", err)
+	}
+
+	bot, err := loadBot(path)
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+	if bot != nil {
+		t.Error("Expected nil bot for missing name")
+	}
+}
+
 func TestLoadBotInvalidCIDR(t *testing.T) {
 	tmpDir := t.TempDir()
 	path := filepath.Join(tmpDir, "testbot.yaml")

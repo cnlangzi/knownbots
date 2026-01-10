@@ -91,6 +91,9 @@ func Load(dir string) ([]*Bot, error) {
 		if err != nil {
 			return nil, err
 		}
+		if bot == nil {
+			continue
+		}
 
 		// Custom bot overrides built-in bot with the same name
 		if _, exists := embedded[bot.Name]; exists {
@@ -127,6 +130,12 @@ func loadBot(path string) (*Bot, error) {
 	}
 	if err := yaml.Unmarshal(data, &tmp); err != nil {
 		return nil, err
+	}
+
+	// Validate required Name field
+	if tmp.Name == "" {
+		log.Printf("[knownbots] skip %q: missing required 'name' field", path)
+		return nil, nil
 	}
 
 	// Use bot name as default parser if not specified
