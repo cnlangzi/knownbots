@@ -290,8 +290,8 @@ func (v *Validator) Validate(ua, ip string) Result {
 		}
 	}
 
-	// classifyUA disabled: assume unknown bot for non-matched UAs
-	return Result{Status: StatusUnknown, IsBot: true, IsVerified: false}
+	// classifyUA disabled: unknown UA, assume not a bot
+	return Result{Status: StatusUnknown, IsBot: false, IsVerified: false}
 }
 
 // verifyIP verifies if the IP belongs to the given bot.

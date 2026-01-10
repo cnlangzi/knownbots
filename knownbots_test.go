@@ -77,7 +77,7 @@ rdns: false
 		t.Fatalf("Failed to write config: %v", err)
 	}
 
-	v, err := New(WithRoot(tmpDir))
+	v, err := New(WithRoot(tmpDir), WithClassifyUA())
 	if err != nil {
 		t.Fatalf("Failed to create validator: %v", err)
 	}
@@ -290,5 +290,44 @@ rdns: false
 	}
 	if !result.IsBot {
 		t.Error("Expected IsBot=true for malformed browser-like UA")
+	}
+}
+
+func TestValidatorDefaultBehavior(t *testing.T) {
+	// Test default behavior (classifyUA disabled for performance)
+	tmpDir := t.TempDir()
+	confDir := filepath.Join(tmpDir, "conf.d")
+	if err := os.MkdirAll(confDir, 0755); err != nil {
+		t.Fatalf("Failed to create conf.d: %v", err)
+	}
+
+	configContent := `name: googlebot
+ua: "Googlebot"
+custom:
+  - "66.249.64.0/19"
+domains:
+  - "googlebot.com"
+urls: []
+rdns: false
+`
+	configPath := filepath.Join(confDir, "googlebot.yaml")
+	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
+		t.Fatalf("Failed to write config: %v", err)
+	}
+
+	// Default: classifyUA disabled
+	v, err := New(WithRoot(tmpDir))
+	if err != nil {
+		t.Fatalf("Failed to create validator: %v", err)
+	}
+	defer v.Close()
+
+	// Unknown UA (not a known bot) should return IsBot=false when classifyUA is disabled
+	result := v.Validate("UnknownBot/1.0", "192.168.1.1")
+	if result.Status != StatusUnknown {
+		t.Errorf("Expected unknown, got %s", result.Status)
+	}
+	if result.IsBot {
+		t.Error("Expected IsBot=false for unknown UA when classifyUA is disabled")
 	}
 }
