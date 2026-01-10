@@ -34,22 +34,83 @@ rdns: false
 		t.Fatalf("Failed to write config: %v", err)
 	}
 
+	// Load bots (includes built-in bots)
+	bots, err := Load(tmpDir)
+	if err != nil {
+		t.Fatalf("Failed to load bots: %v", err)
+	}
+
+	// Should have all built-in bots + 1 custom = 58
+	expectedCount := EmbeddedBotCount() + 1
+	if len(bots) != expectedCount {
+		t.Fatalf("Expected %d bots (built-in + custom), got %d", expectedCount, len(bots))
+	}
+
+	// Find the custom bot
+	var found bool
+	for _, bot := range bots {
+		if bot.Name == "testbot" {
+			found = true
+			if bot.UA != "TestBot" {
+				t.Errorf("Expected UA 'TestBot', got '%s'", bot.UA)
+			}
+		}
+	}
+	if !found {
+		t.Error("Expected to find custom testbot")
+	}
+}
+
+func TestLoadWithOverride(t *testing.T) {
+	// Test that custom config overrides built-in config
+	tmpDir := t.TempDir()
+
+	// Create conf.d subdirectory
+	confDir := filepath.Join(tmpDir, "conf.d")
+	if err := os.MkdirAll(confDir, 0755); err != nil {
+		t.Fatalf("Failed to create conf.d: %v", err)
+	}
+
+	// Override built-in googlebot with custom config
+	configContent := `name: googlebot
+ua: "CustomGooglebot"
+custom:
+  - "1.2.3.0/24"
+domains: []
+rdns: false
+`
+	configPath := filepath.Join(confDir, "googlebot.yaml")
+	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
+		t.Fatalf("Failed to write config: %v", err)
+	}
+
 	// Load bots
 	bots, err := Load(tmpDir)
 	if err != nil {
 		t.Fatalf("Failed to load bots: %v", err)
 	}
 
-	if len(bots) != 1 {
-		t.Fatalf("Expected 1 bot, got %d", len(bots))
+	// Should have same count as built-in (custom replaces built-in, not adds)
+	expectedCount := EmbeddedBotCount()
+	if len(bots) != expectedCount {
+		t.Errorf("Expected %d bots (built-in count), got %d", expectedCount, len(bots))
 	}
 
-	bot := bots[0]
-	if bot.Name != "testbot" {
-		t.Errorf("Expected name 'testbot', got '%s'", bot.Name)
+	// Find googlebot and verify it's the custom one
+	var found bool
+	for _, bot := range bots {
+		if bot.Name == "googlebot" {
+			found = true
+			if bot.UA != "CustomGooglebot" {
+				t.Errorf("Expected UA 'CustomGooglebot' (override), got '%s'", bot.UA)
+			}
+			if len(bot.Domains) != 0 {
+				t.Errorf("Expected empty domains (override), got %v", bot.Domains)
+			}
+		}
 	}
-	if bot.UA != "TestBot" {
-		t.Errorf("Expected UA 'TestBot', got '%s'", bot.UA)
+	if !found {
+		t.Error("Expected to find googlebot")
 	}
 }
 

@@ -45,16 +45,49 @@ type Bot struct {
 	fail    *LRU          // failed IP cache for fast rejection
 }
 
+// LoadOptions holds options for loading bot configurations.
+type LoadOptions struct {
+	LoadBuiltIn bool // Whether to load built-in bots (default: true)
+}
+
 // Load loads all bot configurations from the bots directory.
-// It reads all .yaml or .yml files from the conf.d subdirectory.
+// It loads built-in bots from embedded configuration and then
+// loads custom bots from the conf.d subdirectory.
+// Custom bots override built-in bots with the same name.
 func Load(dir string) ([]*Bot, error) {
-	confDir := filepath.Join(dir, "conf.d")
-	entries, err := os.ReadDir(confDir)
-	if err != nil {
-		return nil, err
+	return LoadWithOptions(dir, LoadOptions{LoadBuiltIn: true})
+}
+
+// LoadWithOptions loads bot configurations with additional options.
+func LoadWithOptions(dir string, opts LoadOptions) ([]*Bot, error) {
+	var embedded map[string]*Bot
+	var err error
+
+	// Load built-in bots if enabled
+	if opts.LoadBuiltIn {
+		embedded, err = loadEmbedded()
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		embedded = make(map[string]*Bot)
 	}
 
-	var bots []*Bot
+	// Then, load custom bots from user's directory
+	customDir := filepath.Join(dir, "conf.d")
+	entries, err := os.ReadDir(customDir)
+	if err != nil {
+		// If custom dir doesn't exist, just return built-in bots
+		bots := make([]*Bot, 0, len(embedded))
+		for _, bot := range embedded {
+			bots = append(bots, bot)
+		}
+		return bots, nil
+	}
+
+	// Merge: start with embedded, then override with custom
+	bots := embedded
+
 	for _, entry := range entries {
 		if entry.IsDir() {
 			continue
@@ -65,15 +98,23 @@ func Load(dir string) ([]*Bot, error) {
 			continue
 		}
 
-		path := filepath.Join(confDir, entry.Name())
+		path := filepath.Join(customDir, entry.Name())
 		bot, err := loadBot(path)
 		if err != nil {
 			return nil, err
 		}
-		bots = append(bots, bot)
+
+		// Custom bot overrides built-in bot with the same name
+		bots[bot.Name] = bot
 	}
 
-	return bots, nil
+	// Convert map to slice
+	result := make([]*Bot, 0, len(bots))
+	for _, bot := range bots {
+		result = append(result, bot)
+	}
+
+	return result, nil
 }
 
 // loadBot loads a single bot configuration file.
