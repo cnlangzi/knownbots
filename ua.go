@@ -197,9 +197,10 @@ func hasDeviceConflict(ua string) bool {
 //   - Professional spoofing tools: ~10% caught (acceptable for performance target)
 //
 // Performance Characteristics:
-//   - Known bot (fast path): ~178ns (bypasses classifyUA entirely)
-//   - Legitimate browser: ~860ns (full validation pipeline)
-//   - Malformed UA: ~50ns (early rejection)
+//   - Known bot (fast path): ~200ns (bypasses classifyUA entirely)
+//   - Legitimate browser (with classifyUA): ~860ns (full validation pipeline)
+//   - Malformed UA (with classifyUA): ~50ns (early rejection)
+//   - Unknown UA (default): ~100ns (bypasses classifyUA)
 //   - Memory: Zero allocations (lock-free, read-only string operations)
 func classifyUA(ua string) BrowserKind {
 	if ua == "" {
