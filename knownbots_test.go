@@ -181,7 +181,7 @@ func TestContainsIP(t *testing.T) {
 			custom: &atomic.Pointer[[]IPPrefix]{},
 		}
 		prefix, _ := netip.ParsePrefix(tt.cidr)
-		bot.SetCustom([]netip.Prefix{prefix})
+		bot.custom.Store(&[]netip.Prefix{prefix})
 		result := bot.ContainsIP(tt.ip)
 		if result != tt.match {
 			t.Errorf("ContainsIP(%s, %s) = %v, want %v", tt.cidr, tt.ip, result, tt.match)

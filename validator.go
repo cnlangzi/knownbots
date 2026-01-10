@@ -133,7 +133,7 @@ func (v *Validator) runScheduler(httpClient *http.Client) {
 		}
 
 		// Update memory (effective immediately)
-		bot.SetCustom(newIPs)
+		bot.custom.Store(&newIPs)
 
 		// Persist to file (optional, failure is OK)
 		path := filepath.Join(v.root, bot.Name, "ips.txt")

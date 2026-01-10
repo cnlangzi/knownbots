@@ -176,11 +176,6 @@ func parseCIDRs(cidrs []string) []IPPrefix {
 	return nets
 }
 
-// SetCustom atomically updates the custom IP list.
-func (b *Bot) SetCustom(prefixes []netip.Prefix) {
-	b.custom.Store(&prefixes)
-}
-
 // ContainsIP checks if the IP is in the bot's custom IP ranges.
 func (b *Bot) ContainsIP(ipStr string) bool {
 	ip, err := netip.ParseAddr(ipStr)
@@ -218,8 +213,7 @@ func (b *Bot) VerifyRDNS(ipStr string) ResultStatus {
 	// Perform RDNS lookup
 	names, err := net.LookupAddr(ipStr)
 	if err != nil || len(names) == 0 {
-		// Network error or no records
-		b.fail.Add(ipStr)
+		// Network error - allow retry, do not add to fail cache
 		return StatusPending
 	}
 
