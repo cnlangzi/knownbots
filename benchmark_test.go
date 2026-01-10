@@ -100,15 +100,15 @@ func BenchmarkFindBotByUA_Miss(b *testing.B) {
 	})
 }
 
-func BenchmarkFindBotByUA_CaseInsensitive(b *testing.B) {
+func BenchmarkFindBotByUA_CaseSensitive(b *testing.B) {
 	v := setupBenchValidator(b, 40)
-	ua := "Mozilla/5.0 (compatible; googlebot/2.1)"
+	ua := "Mozilla/5.0 (compatible; Googlebot/2.1)"
 
 	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			if v.findBotByUA(ua) == nil {
-				b.Fatal("expected to find googlebot (lowercase)")
+				b.Fatal("expected to find Googlebot")
 			}
 		}
 	})
