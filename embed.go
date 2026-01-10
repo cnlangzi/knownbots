@@ -87,8 +87,8 @@ func parseBotConfig(data []byte, filename string) (*Bot, error) {
 	}
 
 	customNets := parseCIDRs(tmp.Custom)
-	customValue := &atomic.Value{}
-	customValue.Store(customNets)
+	customValue := &atomic.Pointer[[]IPPrefix]{}
+	customValue.Store(&customNets)
 
 	return &Bot{
 		Name:    tmp.Name,
