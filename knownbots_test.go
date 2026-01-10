@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"sync/atomic"
 	"testing"
+	"time"
 )
 
 func TestLoad(t *testing.T) {
@@ -34,22 +35,81 @@ rdns: false
 		t.Fatalf("Failed to write config: %v", err)
 	}
 
+	// Load bots (includes built-in bots)
+	bots, err := Load(tmpDir)
+	if err != nil {
+		t.Fatalf("Failed to load bots: %v", err)
+	}
+
+	// Should have at least our custom bot
+	if len(bots) == 0 {
+		t.Fatal("Expected at least one bot")
+	}
+
+	// Find the custom bot
+	var found bool
+	for _, bot := range bots {
+		if bot.Name == "testbot" {
+			found = true
+			if bot.UA != "TestBot" {
+				t.Errorf("Expected UA 'TestBot', got '%s'", bot.UA)
+			}
+		}
+	}
+	if !found {
+		t.Error("Expected to find custom testbot")
+	}
+}
+
+func TestLoadWithOverride(t *testing.T) {
+	// Test that custom config overrides built-in config
+	tmpDir := t.TempDir()
+
+	// Create conf.d subdirectory
+	confDir := filepath.Join(tmpDir, "conf.d")
+	if err := os.MkdirAll(confDir, 0755); err != nil {
+		t.Fatalf("Failed to create conf.d: %v", err)
+	}
+
+	// Override built-in googlebot with custom config
+	configContent := `name: googlebot
+ua: "CustomGooglebot"
+custom:
+  - "1.2.3.0/24"
+domains: []
+rdns: false
+`
+	configPath := filepath.Join(confDir, "googlebot.yaml")
+	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
+		t.Fatalf("Failed to write config: %v", err)
+	}
+
 	// Load bots
 	bots, err := Load(tmpDir)
 	if err != nil {
 		t.Fatalf("Failed to load bots: %v", err)
 	}
 
-	if len(bots) != 1 {
-		t.Fatalf("Expected 1 bot, got %d", len(bots))
+	// Should have at least some bots (built-in + custom)
+	if len(bots) == 0 {
+		t.Fatal("Expected at least one bot")
 	}
 
-	bot := bots[0]
-	if bot.Name != "testbot" {
-		t.Errorf("Expected name 'testbot', got '%s'", bot.Name)
+	// Find googlebot and verify it's the custom one
+	var found bool
+	for _, bot := range bots {
+		if bot.Name == "googlebot" {
+			found = true
+			if bot.UA != "CustomGooglebot" {
+				t.Errorf("Expected UA 'CustomGooglebot' (override), got '%s'", bot.UA)
+			}
+			if len(bot.Domains) != 0 {
+				t.Errorf("Expected empty domains (override), got %v", bot.Domains)
+			}
+		}
 	}
-	if bot.UA != "TestBot" {
-		t.Errorf("Expected UA 'TestBot', got '%s'", bot.UA)
+	if !found {
+		t.Error("Expected to find googlebot")
 	}
 }
 
@@ -329,5 +389,217 @@ rdns: false
 	}
 	if result.IsBot {
 		t.Error("Expected IsBot=false for unknown UA when classifyUA is disabled")
+	}
+}
+
+func TestMatchDomain(t *testing.T) {
+	tests := []struct {
+		hostname string
+		domains  []string
+		expect   bool
+	}{
+		{"google.com", []string{"google.com"}, true},
+		{"www.google.com", []string{"google.com"}, true},
+		{"mail.google.com", []string{"google.com"}, true},
+		{"google.com", []string{"example.com"}, false},
+		{"notgoogle.com", []string{"google.com"}, false},
+		{"", []string{"google.com"}, false},
+		{"google.com", []string{}, false},
+	}
+
+	for _, tt := range tests {
+		result := matchDomain(tt.hostname, tt.domains)
+		if result != tt.expect {
+			t.Errorf("matchDomain(%q, %v) = %v, want %v", tt.hostname, tt.domains, result, tt.expect)
+		}
+	}
+}
+
+func TestIsAlphaNumeric(t *testing.T) {
+	tests := []struct {
+		c      byte
+		expect bool
+	}{
+		{'a', true}, {'z', true}, {'A', true}, {'Z', true}, {'0', true}, {'9', true},
+		{' ', false}, {'.', false}, {'-', false}, {'@', false},
+	}
+
+	for _, tt := range tests {
+		result := isAlphaNumeric(tt.c)
+		if result != tt.expect {
+			t.Errorf("isAlphaNumeric(%q) = %v, want %v", tt.c, result, tt.expect)
+		}
+	}
+}
+
+func TestSplitTwo(t *testing.T) {
+	tests := []struct {
+		input   string
+		expect1 string
+		expect2 string
+	}{
+		{"key value", "key", "value"},
+		{"single", "", ""},
+		{"", "", ""},
+		{"no space here", "no", "space here"},
+	}
+
+	for _, tt := range tests {
+		a, b := splitTwo(tt.input)
+		if a != tt.expect1 || b != tt.expect2 {
+			t.Errorf("splitTwo(%q) = (%q, %q), want (%q, %q)", tt.input, a, b, tt.expect1, tt.expect2)
+		}
+	}
+}
+
+func TestBuildUAIndex(t *testing.T) {
+	bots := []*Bot{
+		{Name: "googlebot", UA: "Googlebot"},
+		{Name: "bingbot", UA: "Bingbot"},
+		{Name: "emptyua", UA: ""},
+	}
+
+	index := buildUAIndex(bots)
+
+	// Should have entries for 'G' and 'B'
+	if len(index) != 2 {
+		t.Errorf("Expected index with 2 entries, got %d", len(index))
+	}
+
+	// Check G entry
+	gBots, ok := index['G']
+	if !ok {
+		t.Error("Expected index['G'] to exist")
+	}
+	if len(gBots) != 1 || gBots[0].Name != "googlebot" {
+		t.Errorf("Expected googlebot in index['G'], got %v", gBots)
+	}
+
+	// Check B entry
+	bBots, ok := index['B']
+	if !ok {
+		t.Error("Expected index['B'] to exist")
+	}
+	if len(bBots) != 1 || bBots[0].Name != "bingbot" {
+		t.Errorf("Expected bingbot in index['B'], got %v", bBots)
+	}
+
+	// Empty UA should not be in index
+	if _, ok := index[0]; ok {
+		t.Error("Empty UA should not be in index")
+	}
+}
+
+func TestLoadBotInvalidFile(t *testing.T) {
+	// Test loading a non-existent file
+	_, err := loadBot("/nonexistent/path/bot.yaml")
+	if err == nil {
+		t.Error("Expected error loading non-existent file")
+	}
+}
+
+func TestLoadBotInvalidYAML(t *testing.T) {
+	tmpDir := t.TempDir()
+	path := filepath.Join(tmpDir, "invalid.yaml")
+	if err := os.WriteFile(path, []byte("invalid: yaml: content: ["), 0644); err != nil {
+		t.Fatalf("Failed to write file: %v", err)
+	}
+
+	_, err := loadBot(path)
+	if err == nil {
+		t.Error("Expected error parsing invalid YAML")
+	}
+}
+
+func TestLoadBotMissingName(t *testing.T) {
+	tmpDir := t.TempDir()
+	path := filepath.Join(tmpDir, "missing-name.yaml")
+	// Config without 'name' field
+	config := `ua: "TestBot"
+custom:
+  - "192.168.1.0/24"
+`
+	if err := os.WriteFile(path, []byte(config), 0644); err != nil {
+		t.Fatalf("Failed to write file: %v", err)
+	}
+
+	bot, err := loadBot(path)
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+	if bot != nil {
+		t.Error("Expected nil bot for missing name")
+	}
+}
+
+func TestLoadBotInvalidCIDR(t *testing.T) {
+	tmpDir := t.TempDir()
+	path := filepath.Join(tmpDir, "testbot.yaml")
+	config := `name: testbot
+ua: "TestBot"
+custom:
+  - "invalid-cidr"
+  - "192.168.1.0/24"
+`
+	if err := os.WriteFile(path, []byte(config), 0644); err != nil {
+		t.Fatalf("Failed to write file: %v", err)
+	}
+
+	bot, err := loadBot(path)
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+
+	// Should have parsed the valid CIDR
+	prefixes := bot.custom.Load().([]IPPrefix)
+	if len(prefixes) != 1 {
+		t.Errorf("Expected 1 valid CIDR, got %d", len(prefixes))
+	}
+}
+
+func TestParseCIDRs(t *testing.T) {
+	tests := []struct {
+		input  []string
+		expect int
+	}{
+		{[]string{"192.168.1.0/24"}, 1},
+		{[]string{"10.0.0.0/8"}, 1},
+		{[]string{"invalid"}, 0},
+		{[]string{""}, 0},
+		{[]string{"192.168.1.0/24", "invalid", "10.0.0.0/8"}, 2},
+	}
+
+	for _, tt := range tests {
+		result := parseCIDRs(tt.input)
+		if len(result) != tt.expect {
+			t.Errorf("parseCIDRs(%v) = %d prefixes, want %d", tt.input, len(result), tt.expect)
+		}
+	}
+}
+
+func TestConfigOptions(t *testing.T) {
+	// Test WithRoot
+	cfg := &Config{}
+	WithRoot("/custom/bots")(cfg)
+	if cfg.Root != "/custom/bots" {
+		t.Errorf("WithRoot failed: got %q, want %q", cfg.Root, "/custom/bots")
+	}
+
+	// Test WithSchedulerInterval
+	WithSchedulerInterval(1 * time.Hour)(cfg)
+	if cfg.Interval != 1*time.Hour {
+		t.Errorf("WithSchedulerInterval failed: got %v, want %v", cfg.Interval, 1*time.Hour)
+	}
+
+	// Test WithFailLimit
+	WithFailLimit(500)(cfg)
+	if cfg.FailLimit != 500 {
+		t.Errorf("WithFailLimit failed: got %d, want 500", cfg.FailLimit)
+	}
+
+	// Test WithClassifyUA
+	WithClassifyUA()(cfg)
+	if !cfg.ClassifyUA {
+		t.Error("WithClassifyUA failed: ClassifyUA should be true")
 	}
 }

@@ -1,6 +1,7 @@
 package knownbots
 
 import (
+	"log"
 	"net"
 	"net/netip"
 	"os"
@@ -46,15 +47,35 @@ type Bot struct {
 }
 
 // Load loads all bot configurations from the bots directory.
-// It reads all .yaml or .yml files from the conf.d subdirectory.
+// It loads built-in bots from embedded configuration and then
+// loads custom bots from the conf.d subdirectory.
+// Custom bots override built-in bots with the same name.
 func Load(dir string) ([]*Bot, error) {
-	confDir := filepath.Join(dir, "conf.d")
-	entries, err := os.ReadDir(confDir)
+	// First, load all built-in bots
+	embedded, err := loadEmbedded()
 	if err != nil {
 		return nil, err
 	}
 
-	var bots []*Bot
+	// Then, load custom bots from user's directory
+	customDir := filepath.Join(dir, "conf.d")
+	entries, err := os.ReadDir(customDir)
+	if err != nil {
+		// Only treat "dir doesn't exist" as "use built-in only"
+		// Return other errors (permission, I/O) so callers can handle them
+		if os.IsNotExist(err) {
+			bots := make([]*Bot, 0, len(embedded))
+			for _, bot := range embedded {
+				bots = append(bots, bot)
+			}
+			return bots, nil
+		}
+		return nil, err
+	}
+
+	// Merge: start with embedded, then override with custom
+	bots := embedded
+
 	for _, entry := range entries {
 		if entry.IsDir() {
 			continue
@@ -65,15 +86,29 @@ func Load(dir string) ([]*Bot, error) {
 			continue
 		}
 
-		path := filepath.Join(confDir, entry.Name())
+		path := filepath.Join(customDir, entry.Name())
 		bot, err := loadBot(path)
 		if err != nil {
 			return nil, err
 		}
-		bots = append(bots, bot)
+		if bot == nil {
+			continue
+		}
+
+		// Custom bot overrides built-in bot with the same name
+		if _, exists := embedded[bot.Name]; exists {
+			log.Printf("[knownbots] custom config %q overrides built-in bot", bot.Name)
+		}
+		bots[bot.Name] = bot
 	}
 
-	return bots, nil
+	// Convert map to slice
+	result := make([]*Bot, 0, len(bots))
+	for _, bot := range bots {
+		result = append(result, bot)
+	}
+
+	return result, nil
 }
 
 // loadBot loads a single bot configuration file.
@@ -95,6 +130,12 @@ func loadBot(path string) (*Bot, error) {
 	}
 	if err := yaml.Unmarshal(data, &tmp); err != nil {
 		return nil, err
+	}
+
+	// Validate required Name field
+	if tmp.Name == "" {
+		log.Printf("[knownbots] skip %q: missing required 'name' field", path)
+		return nil, nil
 	}
 
 	// Use bot name as default parser if not specified
