@@ -27,6 +27,7 @@ const (
 // Result represents the verification result.
 type Result struct {
 	Name       string       `json:"name"`
+	Kind       BotKind      `json:"kind"`
 	Status     ResultStatus `json:"status"`
 	IsBot      bool         `json:"is_bot"`
 	IsVerified bool         `json:"is_verified"`
@@ -174,31 +175,31 @@ func (v *Validator) Validate(ua, ip string) Result {
 		switch classifyUA(ua) {
 		case Browser:
 			// Valid browser structure → not a bot
-			return Result{Status: StatusUnknown, IsBot: false, IsVerified: false}
+			return Result{Status: StatusUnknown, Kind: KindUnknown, IsBot: false, IsVerified: false}
 		case Suspicious:
 			// Claims to be browser but malformed → suspicious bot
-			return Result{Status: StatusUnknown, IsBot: true, IsVerified: false}
+			return Result{Status: StatusUnknown, Kind: KindUnknown, IsBot: true, IsVerified: false}
 		default:
 			// Unknown (not browser-like)
-			return Result{Status: StatusUnknown, IsBot: true, IsVerified: false}
+			return Result{Status: StatusUnknown, Kind: KindUnknown, IsBot: true, IsVerified: false}
 		}
 	}
 
 	// classifyUA disabled (default): unknown UA, assume not a bot
-	return Result{Status: StatusUnknown, IsBot: false, IsVerified: false}
+	return Result{Status: StatusUnknown, Kind: KindUnknown, IsBot: false, IsVerified: false}
 }
 
 // verifyIP verifies if the IP belongs to the given bot.
 func (v *Validator) verifyIP(bot *Bot, ipStr string) Result {
 	if bot.ContainsIP(ipStr) {
-		return Result{Name: bot.Name, Status: StatusVerified, IsVerified: true}
+		return Result{Name: bot.Name, Kind: bot.Kind, Status: StatusVerified, IsVerified: true}
 	}
 
 	if bot.RDNS && bot.VerifyRDNS(ipStr) {
-		return Result{Name: bot.Name, Status: StatusVerified, IsVerified: true}
+		return Result{Name: bot.Name, Kind: bot.Kind, Status: StatusVerified, IsVerified: true}
 	}
 
-	return Result{Name: bot.Name, Status: StatusFailed, IsVerified: false}
+	return Result{Name: bot.Name, Kind: bot.Kind, Status: StatusFailed, IsVerified: false}
 }
 
 // findBotByUA finds a bot by matching the UserAgent marker.
