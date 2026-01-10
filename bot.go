@@ -97,7 +97,9 @@ func Load(dir string) ([]*Bot, error) {
 
 		// Custom bot overrides built-in bot with the same name
 		if _, exists := embedded[bot.Name]; exists {
-			log.Printf("[knownbots] custom config %q overrides built-in bot", bot.Name)
+			if EnableLog {
+				log.Printf("[knownbots] custom config %q overrides built-in bot", bot.Name)
+			}
 		}
 		bots[bot.Name] = bot
 	}
@@ -134,7 +136,9 @@ func loadBot(path string) (*Bot, error) {
 
 	// Validate required Name field
 	if tmp.Name == "" {
-		log.Printf("[knownbots] skip %q: missing required 'name' field", path)
+		if EnableLog {
+			log.Printf("[knownbots] skip %q: missing required 'name' field", path)
+		}
 		return nil, nil
 	}
 

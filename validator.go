@@ -147,7 +147,9 @@ func (v *Validator) runScheduler(httpClient *http.Client) {
 		cache.Prune(bot.Domains)
 
 		if err := cache.Persist(); err != nil {
-			log.Printf("[knownbots] failed to persist cache for %s: %v", bot.Name, err)
+			if EnableLog {
+				log.Printf("[knownbots] failed to persist cache for %s: %v", bot.Name, err)
+			}
 		}
 	}
 }

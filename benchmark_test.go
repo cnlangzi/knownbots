@@ -6,6 +6,10 @@ import (
 	"testing"
 )
 
+func init() {
+	EnableLog = false
+}
+
 func setupBenchValidator(b *testing.B, botCount int) *Validator {
 	tmpDir := b.TempDir()
 	confDir := filepath.Join(tmpDir, "conf.d")

@@ -14,6 +14,11 @@ import (
 	"github.com/cnlangzi/knownbots/parser"
 )
 
+// EnableLog controls whether knownbots outputs log messages.
+// Set to false to disable logging and reduce console pollution.
+// Default: true (logging enabled)
+var EnableLog = true
+
 // matchDomain checks if the hostname matches any of the given domains.
 func matchDomain(hostname string, domains []string) bool {
 	for _, domain := range domains {
@@ -96,7 +101,9 @@ func fetchAndParse(httpClient *http.Client, p parser.Parser, url string) []netip
 
 	prefixes, err := p.Parse(resp.Body)
 	if err != nil {
-		log.Printf("[knownbots] failed to parse IPs from %s: %v", url, err)
+		if EnableLog {
+			log.Printf("[knownbots] failed to parse IPs from %s: %v", url, err)
+		}
 		return nil
 	}
 	return prefixes

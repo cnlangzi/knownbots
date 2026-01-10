@@ -114,9 +114,17 @@ This ensures accurate, up-to-date information from official sources.
 
 ## Directory Structure
 
-- `/`: Root package code (`knownbots.go`, `validator.go`, `ua.go`).
-- `bots/`: Configuration for known bots.
-  - `conf.d/`: YAML configuration files for individual bots.
+- `/`: Root package code
+  - `knownbots.go` - Utility functions and core types
+  - `validator.go` - Validator logic and methods
+  - `bot.go` - Bot type and loading
+  - `config.go` - Config struct and Option functions
+  - `embed.go` - Embedded bot configurations (go:embed)
+  - `ua.go` - User-Agent classification
+  - `cache.go` - RDNS cache implementation
+  - `lru.go` - LRU cache for failed lookups
+- `bots/`: Configuration for known bots (embedded in binary)
+  - `conf.d/`: YAML configuration files for individual bots (57 built-in bots)
 - `parser/`: IP range parser implementations.
   - `parser.go` - Parser interface and registry
   - `parser_google.go` - Google-style JSON parser (ipv4Prefix/ipv6Prefix)
@@ -124,15 +132,19 @@ This ensures accurate, up-to-date information from official sources.
   - `parser_stripe.go` - Stripe webhook IP parser
   - `parser_github.go` - GitHub API IP parser
   - `parser_txt.go` - Plain text line-by-line parser
-- `tasks/`: Task definitions or documentation.
 
 ## Bot Configuration
 
-Bot definitions are stored in YAML files within `bots/conf.d/`.
-Each file should define:
+Bot definitions are stored in YAML files within `bots/conf.d/` and embedded in the binary.
+
+**Built-in Bots**: The library includes 57 built-in bot configurations (Googlebot, Bingbot, GPTBot, etc.) that are embedded via `go:embed` and loaded automatically.
+
+**Custom Bots**: Users can add custom bots by placing YAML files in their own `./bots/conf.d/` directory. Custom bots override built-in bots with the same name.
+
+Each bot configuration file should define:
 
 ```yaml
-kind: SearchEngine        # Bot category (SearchEngine, SocialMedia, Tool, etc.)
+kind: SearchEngine        # Bot category (SearchEngine, SocialMedia, AITraining, AIAssist, etc.)
 name: googlebot           # Unique identifier for the bot
 parser: google            # Parser name: google, openai, txt, github, stripe
 ua: "Googlebot"           # User-Agent string fragment (case-sensitive)
@@ -142,6 +154,13 @@ custom: []                # Static CIDR ranges (optional, for backup IPs)
 domains: []               # Verified RDNS domains (only if rdns: true)
 rdns: false               # Enable RDNS verification (default: false, use URLs instead)
 ```
+
+### Configuration Loading
+
+The `Load()` function:
+1. Loads all 57 built-in bots from embedded configuration files
+2. Loads custom bots from `./bots/conf.d/` (if directory exists)
+3. Custom bots override built-in bots with the same name (with a warning log)
 
 ### Available Parsers
 

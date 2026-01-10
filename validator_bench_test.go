@@ -6,6 +6,10 @@ import (
 	"testing"
 )
 
+func init() {
+	EnableLog = false
+}
+
 // Benchmarks use -benchmem to track memory allocations:
 //   - B/op: bytes allocated per operation (should be 0 for hot paths)
 //   - allocs/op: number of allocations per operation (should be 0 for hot paths)
