@@ -216,7 +216,13 @@ func (b *Bot) VerifyRDNS(ipStr string) ResultStatus {
 	// Perform RDNS lookup
 	names, err := net.LookupAddr(ipStr)
 	if err != nil {
-		// Network error - allow retry, do not add to fail cache
+		// Distinguish network errors from NXDOMAIN (no PTR record)
+		if dnsErr, ok := err.(*net.DNSError); ok && dnsErr.IsNotFound {
+			// NXDOMAIN: PTR record does not exist - verification failed
+			b.fail.Add(ipStr)
+			return StatusFailed
+		}
+		// Network error (timeout, connection issue, etc.) - allow retry
 		return StatusPending
 	}
 	if len(names) == 0 {
