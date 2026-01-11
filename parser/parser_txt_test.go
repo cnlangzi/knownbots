@@ -237,3 +237,31 @@ func TestIntegration_UptimeRobot(t *testing.T) {
 	}
 	t.Logf("UptimeRobot: parsed %d prefixes", len(result))
 }
+
+func TestIntegration_Cloudflare(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+	p := &TxtParser{}
+
+	// Fetch IPv4 addresses
+	data, err := fetchFromURL("https://www.cloudflare.com/ips-v4/")
+	if err != nil {
+		t.Fatalf("failed to fetch IPv4: %v", err)
+	}
+	result, err := p.Parse(strings.NewReader(string(data)))
+	if err != nil {
+		t.Fatalf("failed to parse: %v", err)
+	}
+	if len(result) == 0 {
+		t.Error("Cloudflare IPv4 list should not be empty")
+	}
+	t.Logf("Cloudflare IPv4: parsed %d prefixes", len(result))
+
+	// Verify all results are valid IPv4 prefixes
+	for _, prefix := range result {
+		if !prefix.Addr().Is4() {
+			t.Errorf("expected IPv4 prefix, got %v", prefix)
+		}
+	}
+}
