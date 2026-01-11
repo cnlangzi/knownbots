@@ -264,4 +264,25 @@ func TestIntegration_Cloudflare(t *testing.T) {
 			t.Errorf("expected IPv4 prefix, got %v", prefix)
 		}
 	}
+
+	// Fetch IPv6 addresses
+	data, err = fetchFromURL("https://www.cloudflare.com/ips-v6/")
+	if err != nil {
+		t.Fatalf("failed to fetch IPv6: %v", err)
+	}
+	result, err = p.Parse(strings.NewReader(string(data)))
+	if err != nil {
+		t.Fatalf("failed to parse IPv6: %v", err)
+	}
+	if len(result) == 0 {
+		t.Error("Cloudflare IPv6 list should not be empty")
+	}
+	t.Logf("Cloudflare IPv6: parsed %d prefixes", len(result))
+
+	// Verify all results are valid IPv6 prefixes
+	for _, prefix := range result {
+		if !prefix.Addr().Is6() {
+			t.Errorf("expected IPv6 prefix, got %v", prefix)
+		}
+	}
 }
