@@ -114,10 +114,9 @@ func BotVerificationMiddleware(v *knownbots.Validator) func(http.Handler) http.H
 
 ```go
 v, err := knownbots.New(
-    knownbots.WithRoot("./custom-bots"),           // Custom bot config directory
-    knownbots.WithSchedulerInterval(12*time.Hour), // IP refresh frequency
-    knownbots.WithFailLimit(5000),                 // Failed lookup cache size
-    knownbots.WithClassifyUA(),                    // Enable UA classification (disabled by default)
+    knownbots.WithRoot("./custom-bots"),    // Custom bot config directory
+    knownbots.WithFailLimit(5000),          // Failed lookup cache size
+    knownbots.WithClassifyUA(),             // Enable UA classification (disabled by default)
 )
 
 // Disable logging to reduce console pollution (e.g., in benchmarks)
@@ -324,9 +323,6 @@ func (v *Validator) Close() error
 ```go
 // WithRoot sets custom bot directory (default: "./bots")
 func WithRoot(dir string) Option
-
-// WithSchedulerInterval sets refresh interval (default: 24h)
-func WithSchedulerInterval(interval time.Duration) Option
 
 // WithFailLimit sets failed lookup cache size (default: 1000)
 func WithFailLimit(limit int) Option
