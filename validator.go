@@ -39,7 +39,6 @@ type Validator struct {
 	bots       atomic.Pointer[[]*Bot]          // []*Bot, atomic for lock-free reads
 	uaIndex    atomic.Pointer[map[byte][]*Bot] // map[byte][]*Bot, byte-level index for UA lookup
 	cancel     context.CancelFunc
-	interval   time.Duration
 	failLimit  int
 	classifyUA bool
 }
@@ -60,7 +59,6 @@ func (v *Validator) setBots(bots []*Bot) {
 func New(opts ...Option) (*Validator, error) {
 	cfg := Config{
 		Root:       "./bots",
-		Interval:   SchedulerInterval,
 		FailLimit:  FailLRULimit,
 		ClassifyUA: false, // Default: skip classifyUA for performance
 	}
@@ -89,7 +87,6 @@ func New(opts ...Option) (*Validator, error) {
 	v := &Validator{
 		root:       cfg.Root,
 		cancel:     cancel,
-		interval:   cfg.Interval,
 		failLimit:  cfg.FailLimit,
 		classifyUA: cfg.ClassifyUA,
 	}
@@ -106,7 +103,7 @@ func New(opts ...Option) (*Validator, error) {
 //   - persistCaches: write valid cache entries to persistent storage
 func (v *Validator) startScheduler(ctx context.Context) {
 	httpClient := &http.Client{Timeout: 30 * time.Second}
-	ticker := time.NewTicker(v.interval)
+	ticker := time.NewTicker(SchedulerInterval)
 	defer ticker.Stop()
 
 	// Run immediately on start

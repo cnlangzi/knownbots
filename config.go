@@ -1,11 +1,8 @@
 package knownbots
 
-import "time"
-
 // Config holds the options for creating a Validator.
 type Config struct {
 	Root       string
-	Interval   time.Duration
 	FailLimit  int
 	ClassifyUA bool
 }
@@ -17,13 +14,6 @@ type Option func(*Config)
 func WithRoot(dir string) Option {
 	return func(c *Config) {
 		c.Root = dir
-	}
-}
-
-// WithSchedulerInterval sets the background scheduler interval.
-func WithSchedulerInterval(interval time.Duration) Option {
-	return func(c *Config) {
-		c.Interval = interval
 	}
 }
 
