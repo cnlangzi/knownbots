@@ -7,3 +7,4 @@ ua: "SemrushBot-BA"
 rdns: true
 domains:
   - "semrush.com"
+  - "bl.bot.semrush.com"

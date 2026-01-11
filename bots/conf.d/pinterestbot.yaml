@@ -6,3 +6,4 @@ ua: "PinterestBot"
 rdns: true
 domains:
   - "pinterest.com"
+  - "pinimg.com"

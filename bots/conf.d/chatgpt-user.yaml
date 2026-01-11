@@ -6,3 +6,4 @@ ua: "ChatGPT-User"
 rdns: true
 domains:
   - "openai.com"
+  - "chat.openai.com"

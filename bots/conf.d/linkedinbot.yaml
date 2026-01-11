@@ -6,3 +6,4 @@ ua: "LinkedInBot"
 rdns: true
 domains:
   - "linkedin.com"
+  - "fwd.linkedin.com"

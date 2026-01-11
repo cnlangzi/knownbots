@@ -6,4 +6,5 @@ name: sogou
 ua: "Sogou"
 domains:
   - "sogou.com"
+  - "crawl.sogou.com"
 rdns: true
