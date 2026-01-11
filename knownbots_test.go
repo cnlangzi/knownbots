@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"sync/atomic"
 	"testing"
-	"time"
 )
 
 func init() {
@@ -587,12 +586,6 @@ func TestConfigOptions(t *testing.T) {
 	WithRoot("/custom/bots")(cfg)
 	if cfg.Root != "/custom/bots" {
 		t.Errorf("WithRoot failed: got %q, want %q", cfg.Root, "/custom/bots")
-	}
-
-	// Test WithSchedulerInterval
-	WithSchedulerInterval(1 * time.Hour)(cfg)
-	if cfg.Interval != 1*time.Hour {
-		t.Errorf("WithSchedulerInterval failed: got %v, want %v", cfg.Interval, 1*time.Hour)
 	}
 
 	// Test WithFailLimit
