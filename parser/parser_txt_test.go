@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"bytes"
 	"net/netip"
 	"strings"
 	"testing"
@@ -249,7 +250,7 @@ func TestIntegration_Cloudflare(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to fetch IPv4: %v", err)
 	}
-	result, err := p.Parse(strings.NewReader(string(data)))
+	result, err := p.Parse(bytes.NewReader(data))
 	if err != nil {
 		t.Fatalf("failed to parse: %v", err)
 	}
@@ -270,7 +271,7 @@ func TestIntegration_Cloudflare(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to fetch IPv6: %v", err)
 	}
-	result, err = p.Parse(strings.NewReader(string(data)))
+	result, err = p.Parse(bytes.NewReader(data))
 	if err != nil {
 		t.Fatalf("failed to parse IPv6: %v", err)
 	}
