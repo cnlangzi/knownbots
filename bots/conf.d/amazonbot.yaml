@@ -3,6 +3,6 @@
 kind: AITraining
 name: amazonbot
 ua: "Amazonbot"
-parser: google
+parser: amazon
 urls:
   - "https://developer.amazon.com/amazonbot/ip-addresses/"
