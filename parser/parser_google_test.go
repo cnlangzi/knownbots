@@ -184,3 +184,28 @@ func TestIntegration_Applebot(t *testing.T) {
 	}
 	t.Logf("Applebot: parsed %d prefixes", len(result))
 }
+
+func TestIntegration_AmazonBot(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+	p := &AmazonParser{}
+	data, err := fetchFromURL("https://developer.amazon.com/amazonbot/ip-addresses/")
+	if err != nil {
+		t.Skipf("network unavailable, skipping: %v", err)
+	}
+	result, err := p.Parse(strings.NewReader(string(data)))
+	if err != nil {
+		t.Fatalf("failed to parse: %v", err)
+	}
+	if len(result) == 0 {
+		t.Error("AmazonBot IP list should not be empty")
+	}
+	// Verify all results are valid IPv4 prefixes
+	for _, prefix := range result {
+		if !prefix.Addr().Is4() {
+			t.Errorf("expected IPv4 prefix, got %v", prefix)
+		}
+	}
+	t.Logf("AmazonBot: parsed %d prefixes", len(result))
+}

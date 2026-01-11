@@ -22,48 +22,62 @@ func (p *AmazonParser) Parse(r io.Reader) ([]netip.Prefix, error) {
 	// Extract JSON from HTML page - look for the code block with prefixes
 	jsonPattern := regexp.MustCompile(`\{\s*"creationTime"\s*:\s*"[^"]+"\s*,\s*"prefixes"\s*:\s*\[([^\]]+)\]`)
 	matches := jsonPattern.FindStringSubmatch(string(data))
-	if len(matches) < 2 {
-		// Try alternate pattern - the full JSON object
-		jsonPattern2 := regexp.MustCompile(`\{[^{}]*"prefixes"\s*:\s*\[([^\]]*)\][^{}]*\}`)
-		matches = jsonPattern2.FindStringSubmatch(string(data))
-		if len(matches) < 2 {
-			return nil, nil
+	if len(matches) >= 2 {
+		// Reconstruct valid JSON
+		jsonStr := `{"prefixes": [` + matches[1] + `]}`
+
+		var result struct {
+			Prefixes []struct {
+				IPV4Prefix string `json:"ipv4Prefix"`
+			} `json:"prefixes"`
+		}
+
+		if err := json.Unmarshal([]byte(jsonStr), &result); err == nil && len(result.Prefixes) > 0 {
+			return p.extractPrefixes(result.Prefixes), nil
 		}
 	}
 
-	// Reconstruct valid JSON
-	jsonStr := `{"prefixes": [` + matches[1] + `]}`
-
-	var result struct {
-		Prefixes []struct {
-			IPV4Prefix string `json:"ipv4Prefix"`
-		} `json:"prefixes"`
+	// Try alternate pattern - the full JSON object
+	jsonPattern2 := regexp.MustCompile(`\{[^{}]*"prefixes"\s*:\s*\[([^\]]*)\][^{}]*\}`)
+	matches = jsonPattern2.FindStringSubmatch(string(data))
+	if len(matches) >= 2 {
+		jsonStr := `{"prefixes": [` + matches[1] + `]}`
+		var result struct {
+			Prefixes []struct {
+				IPV4Prefix string `json:"ipv4Prefix"`
+			} `json:"prefixes"`
+		}
+		if err := json.Unmarshal([]byte(jsonStr), &result); err == nil && len(result.Prefixes) > 0 {
+			return p.extractPrefixes(result.Prefixes), nil
+		}
 	}
 
-	if err := json.Unmarshal([]byte(jsonStr), &result); err != nil {
-		// If simple pattern fails, try to parse individual IPs from the raw text
-		return p.parseIPsFromText(string(data))
-	}
+	// Fallback: parse individual IPs from text
+	return p.parseIPsFromText(string(data))
+}
 
-	var prefixes []netip.Prefix
-	for _, p := range result.Prefixes {
-		if p.IPV4Prefix == "" {
+func (p *AmazonParser) extractPrefixes(prefixes []struct {
+	IPV4Prefix string `json:"ipv4Prefix"`
+}) []netip.Prefix {
+	var result []netip.Prefix
+	for _, pref := range prefixes {
+		if pref.IPV4Prefix == "" {
 			continue
 		}
 		// Try as CIDR first
-		prefix, err := netip.ParsePrefix(p.IPV4Prefix)
+		prefix, err := netip.ParsePrefix(pref.IPV4Prefix)
 		if err == nil {
-			prefixes = append(prefixes, prefix)
+			result = append(result, prefix)
 			continue
 		}
 		// Try as individual IP
-		addr, err := netip.ParseAddr(p.IPV4Prefix)
+		addr, err := netip.ParseAddr(pref.IPV4Prefix)
 		if err != nil {
 			continue
 		}
-		prefixes = append(prefixes, netip.PrefixFrom(addr, 32))
+		result = append(result, netip.PrefixFrom(addr, 32))
 	}
-	return prefixes, nil
+	return result
 }
 
 // parseIPsFromText extracts individual IPs from text and converts to /32 prefixes
