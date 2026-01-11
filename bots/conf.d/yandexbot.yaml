@@ -6,5 +6,6 @@ name: yandexbot
 ua: "YandexBot"
 domains:
   - "yandex.com"
+  - "yandex.net"
   - "yandex.ru"
 rdns: true

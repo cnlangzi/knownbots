@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"bytes"
 	"net/netip"
 	"strings"
 	"testing"
@@ -159,4 +160,23 @@ func TestIntegration_Applebot(t *testing.T) {
 		t.Error("Applebot IP list should not be empty")
 	}
 	t.Logf("Applebot: parsed %d prefixes", len(result))
+}
+
+func TestIntegration_GoogleSpecial(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+	p := &GoogleParser{}
+	data, err := fetchFromURL("https://developers.google.com/static/search/apis/ipranges/special-crawlers.json")
+	if err != nil {
+		t.Fatalf("failed to fetch Google Special IP list: %v", err)
+	}
+	result, err := p.Parse(bytes.NewReader(data))
+	if err != nil {
+		t.Fatalf("failed to parse: %v", err)
+	}
+	if len(result) == 0 {
+		t.Error("Google Special IP list should not be empty")
+	}
+	t.Logf("Google Special: parsed %d prefixes", len(result))
 }

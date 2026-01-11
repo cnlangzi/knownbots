@@ -6,3 +6,4 @@ ua: "Chrome-Lighthouse"
 rdns: true
 domains:
   - "google.com"
+  - "googlebot.com"

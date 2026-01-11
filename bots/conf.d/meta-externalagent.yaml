@@ -3,6 +3,8 @@
 kind: AITraining
 name: meta-externalagent
 ua: "Meta-ExternalAgent"
-parser: google
-urls:
-  - "https://developers.facebook.com/externalagent_vaa.json"
+rdns: true
+domains:
+  - "fbsv.net"
+  - "tfbnw.net"
+  - "facebook.com"
