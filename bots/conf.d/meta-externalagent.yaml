@@ -1,5 +1,4 @@
 # Meta AI/Facebook crawler
-# Uses RDNS verification as Meta doesn't publish public IP list
 # https://developers.cloudflare.com/bots/concepts/bot/verified-bots/
 kind: AITraining
 name: meta-externalagent
@@ -7,3 +6,5 @@ ua: "Meta-ExternalAgent"
 rdns: true
 domains:
   - "fbsv.net"
+  - "tfbnw.net"
+  - "facebook.com"
