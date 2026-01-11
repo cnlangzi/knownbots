@@ -3,6 +3,6 @@
 kind: SEO
 name: ahrefsbot
 ua: "AhrefsBot"
-rdns: true
-domains:
-  - "ahrefs.com"
+parser: ahrefs
+urls:
+  - "https://api.ahrefs.com/v3/public/crawler-ips"
