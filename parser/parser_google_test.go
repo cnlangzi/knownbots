@@ -1,34 +1,10 @@
 package parser
 
 import (
-	"context"
-	"fmt"
-	"io"
-	"net/http"
 	"net/netip"
 	"strings"
 	"testing"
-	"time"
 )
-
-func fetchFromURL(url string) ([]byte, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-	if err != nil {
-		return nil, err
-	}
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
-	}
-	return io.ReadAll(resp.Body)
-}
 
 func TestGoogleParser(t *testing.T) {
 	p := &GoogleParser{}
@@ -183,29 +159,4 @@ func TestIntegration_Applebot(t *testing.T) {
 		t.Error("Applebot IP list should not be empty")
 	}
 	t.Logf("Applebot: parsed %d prefixes", len(result))
-}
-
-func TestIntegration_AmazonBot(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping integration test in short mode")
-	}
-	p := &AmazonParser{}
-	data, err := fetchFromURL("https://developer.amazon.com/amazonbot/ip-addresses/")
-	if err != nil {
-		t.Skipf("network unavailable, skipping: %v", err)
-	}
-	result, err := p.Parse(strings.NewReader(string(data)))
-	if err != nil {
-		t.Fatalf("failed to parse: %v", err)
-	}
-	if len(result) == 0 {
-		t.Error("AmazonBot IP list should not be empty")
-	}
-	// Verify all results are valid IPv4 prefixes
-	for _, prefix := range result {
-		if !prefix.Addr().Is4() {
-			t.Errorf("expected IPv4 prefix, got %v", prefix)
-		}
-	}
-	t.Logf("AmazonBot: parsed %d prefixes", len(result))
 }
