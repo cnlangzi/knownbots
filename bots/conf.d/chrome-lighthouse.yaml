@@ -7,4 +7,3 @@ rdns: true
 domains:
   - "google.com"
   - "googlebot.com"
-  - "rate-limited-proxy.google.com"
