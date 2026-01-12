@@ -26,10 +26,7 @@ func TestASNAdd(t *testing.T) {
 		netip.MustParsePrefix("2001:db8::/32"),
 	}
 
-	err := cache.Add(15169, prefixes)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	cache.Add(15169, prefixes)
 
 	if cache.Count() != 2 {
 		t.Errorf("expected count 2, got %d", cache.Count())
@@ -43,7 +40,7 @@ func TestASNContains(t *testing.T) {
 		netip.MustParsePrefix("8.8.8.0/24"),
 		netip.MustParsePrefix("2001:db8::/32"),
 	}
-	_ = cache.Add(15169, prefixes)
+	cache.Add(15169, prefixes)
 
 	// Test IPv4
 	if !cache.Contains(netip.MustParseAddr("8.8.8.8")) {
@@ -70,7 +67,7 @@ func TestASNClone(t *testing.T) {
 	prefixes := []netip.Prefix{
 		netip.MustParsePrefix("8.8.8.0/24"),
 	}
-	_ = cache.Add(15169, prefixes)
+	cache.Add(15169, prefixes)
 
 	clone := cache.Clone()
 	if clone == nil {

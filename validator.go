@@ -77,10 +77,7 @@ func New(opts ...Option) (*Validator, error) {
 	}
 
 	// Initialize ASN store first
-	asnStore, err := asn.NewStore(cfg.Root)
-	if err != nil {
-		return nil, err
-	}
+	asnStore := asn.NewStore(cfg.Root)
 
 	for _, bot := range bots {
 		botDir := filepath.Join(cfg.Root, bot.Name)

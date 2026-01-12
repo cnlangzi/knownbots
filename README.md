@@ -257,7 +257,7 @@ Choose the correct parser based on the IP list format:
   │ IP Lists │      │ Data         │ │ Save     │
   │ (HTTP)   │      │ (RIPE API)   │ │ RDNS     │
   └──────────┘      └──────────────┘ │ Cache    │
-        │                   │        │ (rdns=t) │
+        │                   │        │ (rdns=true) │
         ▼                   ▼        └──────────┘
   Update memory      Update cache          │
   Persist to file    Persist to file       ▼

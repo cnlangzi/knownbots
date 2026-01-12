@@ -3,25 +3,28 @@ package asn
 
 import (
 	"net/netip"
+	"sync/atomic"
 
 	"github.com/kentik/patricia"
 	"github.com/kentik/patricia/uint_tree"
 )
 
 // ASN provides fast O(1) IP lookup using Radix Trees for ASN prefix matching.
+// Thread-safe for concurrent reads and writes via atomic pointers.
 type ASN struct {
 	asns []int
-	v4   *uint_tree.TreeV4
-	v6   *uint_tree.TreeV6
+	v4   atomic.Pointer[uint_tree.TreeV4]
+	v6   atomic.Pointer[uint_tree.TreeV6]
 }
 
 // NewASN creates a new ASN cache with empty trees.
 func NewASN() *ASN {
-	return &ASN{
+	a := &ASN{
 		asns: []int{},
-		v4:   uint_tree.NewTreeV4(),
-		v6:   uint_tree.NewTreeV6(),
 	}
+	a.v4.Store(uint_tree.NewTreeV4())
+	a.v6.Store(uint_tree.NewTreeV6())
+	return a
 }
 
 // ASNs returns the list of ASN numbers in this cache.
@@ -29,35 +32,45 @@ func (c *ASN) ASNs() []int {
 	return c.asns
 }
 
-// Add adds all prefixes from an ASN to the cache.
-func (c *ASN) Add(asn int, prefixes []netip.Prefix) error {
-	c.asns = append(c.asns, asn)
+// Add adds all prefixes from an ASN to the cache (thread-safe).
+func (c *ASN) Add(asn int, prefixes []netip.Prefix) {
+	// Deduplicate ASN numbers
+	seen := false
+	for _, existing := range c.asns {
+		if existing == asn {
+			seen = true
+			break
+		}
+	}
+	if !seen {
+		c.asns = append(c.asns, asn)
+	}
+
 	for _, prefix := range prefixes {
 		addr := prefix.Addr()
 		if addr.Is4() {
 			patriciaAddr, _, _ := patricia.ParseFromNetIPPrefix(prefix)
 			if patriciaAddr != nil {
-				c.v4.Add(*patriciaAddr, 1, nil)
+				c.v4.Load().Add(*patriciaAddr, 1, nil)
 			}
 		} else {
 			_, patriciaAddr, _ := patricia.ParseFromNetIPPrefix(prefix)
 			if patriciaAddr != nil {
-				c.v6.Add(*patriciaAddr, 1, nil)
+				c.v6.Load().Add(*patriciaAddr, 1, nil)
 			}
 		}
 	}
-	return nil
 }
 
-// Contains checks if an IP exists in any of the loaded prefixes.
+// Contains checks if an IP exists in any of the loaded prefixes (thread-safe).
 func (c *ASN) Contains(ip netip.Addr) bool {
 	patriciaAddrV4, patriciaAddrV6, _ := patricia.ParseFromNetIPAddr(ip)
 	if ip.Is4() && patriciaAddrV4 != nil {
-		found, _ := c.v4.FindDeepestTag(*patriciaAddrV4)
+		found, _ := c.v4.Load().FindDeepestTag(*patriciaAddrV4)
 		return found
 	}
 	if patriciaAddrV6 != nil {
-		found, _ := c.v6.FindDeepestTag(*patriciaAddrV6)
+		found, _ := c.v6.Load().FindDeepestTag(*patriciaAddrV6)
 		return found
 	}
 	return false
@@ -65,28 +78,27 @@ func (c *ASN) Contains(ip netip.Addr) bool {
 
 // Clone creates a copy of the ASN cache.
 func (c *ASN) Clone() *ASN {
-	asnsCopy := make([]int, len(c.asns))
-	copy(asnsCopy, c.asns)
-	return &ASN{
-		asns: asnsCopy,
-		v4:   c.v4.Clone(),
-		v6:   c.v6.Clone(),
+	clone := &ASN{
+		asns: append([]int(nil), c.asns...),
 	}
+	clone.v4.Store(c.v4.Load().Clone())
+	clone.v6.Store(c.v6.Load().Clone())
+	return clone
 }
 
 // Count returns the total number of prefixes in the cache.
 func (c *ASN) Count() int {
-	return c.v4.CountTags() + c.v6.CountTags()
+	return c.v4.Load().CountTags() + c.v6.Load().CountTags()
 }
 
 // IPv4Tree returns the IPv4 tree for testing.
 func (c *ASN) IPv4Tree() *uint_tree.TreeV4 {
-	return c.v4
+	return c.v4.Load()
 }
 
 // IPv6Tree returns the IPv6 tree for testing.
 func (c *ASN) IPv6Tree() *uint_tree.TreeV6 {
-	return c.v6
+	return c.v6.Load()
 }
 
 // Deduplicate removes duplicate prefixes from a slice.

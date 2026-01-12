@@ -187,7 +187,7 @@ func (b *Bot) initASN(store *asn.Store) {
 		return
 	}
 
-	if b.asns == nil && len(b.ASN) > 0 {
+	if b.asns == nil {
 		b.asns = asn.NewASN()
 	}
 
@@ -196,7 +196,7 @@ func (b *Bot) initASN(store *asn.Store) {
 		if len(prefixes) == 0 {
 			continue
 		}
-		_ = b.asns.Add(asnNum, prefixes)
+		b.asns.Add(asnNum, prefixes)
 	}
 }
 
@@ -210,7 +210,7 @@ func (b *Bot) refreshASN(store *asn.Store) {
 		if len(prefixes) == 0 {
 			continue
 		}
-		_ = b.asns.Add(asnNum, prefixes)
+		b.asns.Add(asnNum, prefixes)
 	}
 }
 

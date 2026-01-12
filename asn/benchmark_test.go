@@ -30,7 +30,7 @@ func BenchmarkASNCache_Contains(b *testing.B) {
 		netip.MustParsePrefix("1.0.0.0/24"),
 		netip.MustParsePrefix("9.9.9.0/24"),
 	}
-	_ = cache.Add(15169, prefixes)
+	cache.Add(15169, prefixes)
 
 	testIPs := []netip.Addr{
 		netip.MustParseAddr("8.8.8.8"),
@@ -63,7 +63,7 @@ func BenchmarkASNCache_Clone(b *testing.B) {
 		netip.MustParsePrefix("11.0.0.0/24"),
 		netip.MustParsePrefix("12.0.0.0/24"),
 	}
-	_ = cache.Add(15169, prefixes)
+	cache.Add(15169, prefixes)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -78,7 +78,7 @@ func BenchmarkASNCache_Count(b *testing.B) {
 		netip.MustParsePrefix("8.8.4.0/24"),
 		netip.MustParsePrefix("1.1.1.0/24"),
 	}
-	_ = cache.Add(15169, prefixes)
+	cache.Add(15169, prefixes)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -104,7 +104,7 @@ func BenchmarkManager_VerifyIP(b *testing.B) {
 		},
 	}
 	for asn, ps := range prefixes {
-		_ = cache.Add(asn, ps)
+		cache.Add(asn, ps)
 	}
 
 	testIPs := []string{

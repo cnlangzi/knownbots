@@ -15,8 +15,8 @@ type Store struct {
 }
 
 // NewStore creates a new ASN store.
-func NewStore(cacheDir string) (*Store, error) {
-	s := &Store{
+func NewStore(cacheDir string) *Store {
+	return &Store{
 		cacheDir: cacheDir,
 		fetchers: []Fetcher{
 			NewRIPE(),
@@ -24,8 +24,6 @@ func NewStore(cacheDir string) (*Store, error) {
 			NewBGPHE(),
 		},
 	}
-
-	return s, nil
 }
 
 // Get returns prefixes for a given ASN from cache or fetches them.
@@ -99,6 +97,10 @@ func (s *Store) fetch(asn int) ([]netip.Prefix, error) {
 		if len(prefixes) > 0 {
 			return prefixes, nil
 		}
+	}
+
+	if lastErr == nil {
+		return nil, fmt.Errorf("no prefixes found for ASN %d from any fetcher", asn)
 	}
 
 	return nil, fmt.Errorf("all fetchers failed for ASN %d: %w", asn, lastErr)
