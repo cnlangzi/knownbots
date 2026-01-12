@@ -231,34 +231,6 @@ func (v *Validator) findBotByUA(ua string) *Bot {
 	return nil
 }
 
-// Reload reloads all bot configurations.
-func (v *Validator) Reload(root string) error {
-	bots, err := Load(root)
-	if err != nil {
-		return err
-	}
-
-	for _, bot := range bots {
-		if !bot.RDNS {
-			continue
-		}
-		if bot.rdns == nil {
-			rdnscache, err := NewRDNS(filepath.Join(root, bot.Name, "rdns.txt"))
-			if err != nil {
-				return err
-			}
-			bot.rdns = rdnscache
-		}
-		if bot.fail == nil {
-			bot.fail = NewLRU(v.failLimit)
-		}
-	}
-
-	v.root = root
-	v.setBots(bots)
-	return nil
-}
-
 // Close stops the scheduler.
 func (v *Validator) Close() error {
 	v.cancel()
