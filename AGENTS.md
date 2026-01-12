@@ -87,8 +87,8 @@ Each file should have a single, focused responsibility:
 - `parser_*.go` - Individual parser implementations (e.g., `parser_google.go`, `parser_txt.go`)
 - `validator.go` - Validator logic
 - `bot.go` - Bot type and loading
-- `cache.go` - Cache implementation
-- `lru.go` - LRU cache
+- `rdns.go` - RDNS cache implementation
+- `lru.go` - LRU cache for failed lookups
 
 If a file grows beyond ~150-200 lines, consider splitting it by responsibility.
 
@@ -121,7 +121,7 @@ This ensures accurate, up-to-date information from official sources.
   - `config.go` - Config struct and Option functions
   - `embed.go` - Embedded bot configurations (go:embed)
   - `ua.go` - User-Agent classification
-  - `cache.go` - RDNS cache implementation
+  - `rdns.go` - RDNS cache implementation
   - `lru.go` - LRU cache for failed lookups
 - `bots/`: Configuration for known bots (embedded in binary)
   - `conf.d/`: YAML configuration files for individual bots (57 built-in bots)
@@ -132,6 +132,10 @@ This ensures accurate, up-to-date information from official sources.
   - `parser_stripe.go` - Stripe webhook IP parser
   - `parser_github.go` - GitHub API IP parser
   - `parser_txt.go` - Plain text line-by-line parser
+- `asn/`: ASN-based IP verification
+  - `store.go` - ASN cache store with multiple fetchers (RIPE, RouteViews, BGPHE)
+  - `asn.go` - ASN data structure and methods
+  - `fetcher.go` - Fetcher interface and implementations
 
 ## Bot Configuration
 

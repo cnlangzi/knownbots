@@ -457,6 +457,21 @@ RDNS cache sees 1-20 new IPs per day but 1000s of reads per second (99.99% read 
 ### Why byte-level index?
 Linear bot list scan is fast for 3 bots (52ns) but degrades to 640ns at 40 bots. Single-character index provides 4-5x speedup for 20-50 bots at minimal memory cost (<1KB).
 
+### Why Bot method encapsulation?
+IP and ASN lifecycle operations (load, refresh, persist) are shared between initialization and the background scheduler. Encapsulating these as `Bot` methods:
+- **Eliminates duplicate code** - `initBot` and `runScheduler` both call the same `loadCachedIPs`, `refreshIPs`, `initializeASN`, and `refreshASN` methods
+- **Centralizes state** - IPTree and ASN cache pointers live on the `Bot` struct, making ownership clear
+- **Improves testability** - Each lifecycle method can be unit tested in isolation
+- **Enables future extensions** - New verification methods (e.g., BGP feeds) can follow the same pattern
+
+Example Bot methods:
+```go
+func (b *Bot) loadCachedIPs(path string)   // Load cached prefixes from file
+func (b *Bot) refreshIPs(http *http.Client, root string) // Download and persist new prefixes
+func (b *Bot) initializeASN(store *asn.Store)  // Load ASN cache with fallback to API
+func (b *Bot) refreshASN(store *asn.Store)     // Refresh ASN prefixes from API
+```
+
 ## Adding New Bots
 
 Adding a new bot requires **no code changes** - just create a YAML configuration file.
