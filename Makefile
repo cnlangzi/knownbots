@@ -43,4 +43,4 @@ bench:
 # Run benchmarks and output to file
 bench-output:
 	@echo "Running benchmarks..."
-	$(GOBENCH) -bench=. -benchmem -cpu=1,4,8 -timeout 120s -o benchmark_output.txt
+	$(GOBENCH) -bench=. -benchmem -cpu=1,4,8 -timeout 120s > benchmark_output.txt
