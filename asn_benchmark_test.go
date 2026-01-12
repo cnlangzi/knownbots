@@ -107,7 +107,7 @@ func BenchmarkManager_VerifyIP(b *testing.B) {
 	})
 }
 
-func BenchmarkDeduplicate(b *testing.B) {
+func BenchmarkDistinct(b *testing.B) {
 	prefixes := []netip.Prefix{
 		netip.MustParsePrefix("8.8.8.0/24"),
 		netip.MustParsePrefix("8.8.8.0/24"),
@@ -119,7 +119,7 @@ func BenchmarkDeduplicate(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		Deduplicate(prefixes)
+		Distinct(prefixes)
 	}
 }
 

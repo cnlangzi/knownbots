@@ -61,16 +61,21 @@ func TestASNContains(t *testing.T) {
 	}
 }
 
-func TestDeduplicate(t *testing.T) {
+func TestDistinct(t *testing.T) {
 	prefixes := []netip.Prefix{
 		netip.MustParsePrefix("8.8.8.0/24"),
 		netip.MustParsePrefix("8.8.8.0/24"),
+		netip.MustParsePrefix("8.8.8.0/24"),
+		netip.MustParsePrefix("1.1.1.0/24"),
+		netip.MustParsePrefix("1.1.1.0/24"),
 		netip.MustParsePrefix("9.9.9.0/24"),
 	}
 
-	result := Deduplicate(prefixes)
-	if len(result) != 2 {
-		t.Errorf("expected 2 unique prefixes, got %d", len(result))
+	result := Distinct(prefixes)
+	expected := 3
+
+	if len(result) != expected {
+		t.Errorf("expected %d unique prefixes, got %d", expected, len(result))
 	}
 }
 

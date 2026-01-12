@@ -95,7 +95,7 @@ func (s *Store) fetch(asn int) ([]netip.Prefix, error) {
 			continue
 		}
 		if len(prefixes) > 0 {
-			return Sanitize(prefixes), nil
+			return Distinct(prefixes), nil
 		}
 	}
 

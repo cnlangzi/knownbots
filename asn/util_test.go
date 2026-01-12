@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestSanitize(t *testing.T) {
+func TestDistinct(t *testing.T) {
 	tests := []struct {
 		name     string
 		input    []netip.Prefix
@@ -71,7 +71,7 @@ func TestSanitize(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := Sanitize(tt.input)
+			result := Distinct(tt.input)
 			if len(result) != len(tt.expected) {
 				t.Errorf("expected %d prefixes, got %d", len(tt.expected), len(result))
 			}
@@ -84,7 +84,7 @@ func TestSanitize(t *testing.T) {
 	}
 }
 
-func BenchmarkSanitize(b *testing.B) {
+func BenchmarkDistinct(b *testing.B) {
 	prefixes := []netip.Prefix{
 		netip.MustParsePrefix("8.8.8.0/24"),
 		netip.MustParsePrefix("8.8.8.0/24"),
@@ -98,6 +98,6 @@ func BenchmarkSanitize(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		Sanitize(prefixes)
+		Distinct(prefixes)
 	}
 }
