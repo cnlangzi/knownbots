@@ -16,7 +16,8 @@ type BGPHE struct {
 }
 
 // Match prefix links like: <a href="/net/31.13.24.0/21">31.13.24.0/21</a>
-var bgpHePrefixRe = regexp.MustCompile(`<a href="/net/([0-9./a-fA-F]+)"[^>]*>`)
+// or IPv6: <a href="/net/2001:db8::/32">2001:db8::/32</a>
+var bgpHePrefixRe = regexp.MustCompile(`<a href="/net/([0-9a-fA-F:.]+/[0-9]+)"[^>]*>`)
 
 func NewBGPHE() *BGPHE {
 	return &BGPHE{
