@@ -24,13 +24,30 @@ jobs:
           cache: true
 
       - name: Run unit tests
-        run: go test -short ./... -race -coverprofile=coverage.txt -covermode=atomic
+        run: make test-short
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           slug: cnlangzi/knownbots
+
+  integration:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          cache: true
+
+      - name: Run integration tests
+        run: make test-integration
+        continue-on-error: true
 
   benchmark:
     name: Run Benchmarks
@@ -46,34 +63,7 @@ jobs:
           cache: true
 
       - name: Run benchmarks
-        run: |
-          echo "## Benchmark Results" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Hot Path Performance (Validate with verified bot)" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo '| CPUs | ns/op | QPS | Allocs |' >> $GITHUB_STEP_SUMMARY
-          echo '|------|-------|-----|--------|' >> $GITHUB_STEP_SUMMARY
-          
-          # Run benchmarks and capture output
-          go test -run=^$ -bench=. -benchmem -cpu=1,4,8 -timeout 120s 2>&1 | tee benchmark_output.txt
-          
-          # Extract and format key metrics
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Component Performance" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo '| Benchmark | 4 CPUs (ns/op) | 8 CPUs (ns/op) |' >> $GITHUB_STEP_SUMMARY
-          echo '|-----------|----------------|----------------|' >> $GITHUB_STEP_SUMMARY
-          
-          # Parse benchmark output and add to summary
-          grep -E "Benchmark(FindBotByUA|ContainsIP|ClassifyUA).*-[48]" benchmark_output.txt | \
-            awk '{gsub(/Benchmark/, ""); gsub(/-[48]/, ""); split($0, a); 
-                  if(a[1] ~ /ContainsIP/) row="ContainsIP"; 
-                  else if(a[1] ~ /FindBotByUA/) row="FindBotByUA"; 
-                  else if(a[1] ~ /ClassifyUA/) row="ClassifyUA";
-                  printf "| %s | %s ns/op | %s ns/op |\n", row, a[2], a[3]}' >> $GITHUB_STEP_SUMMARY
-
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "*Note: Zero allocations (0 B/op, 0 allocs/op) indicate GC-free hot paths*" >> $GITHUB_STEP_SUMMARY
+        run: make bench-output
 
       - name: Comment benchmark results on PR
         if: github.event_name == 'pull_request'

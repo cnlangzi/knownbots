@@ -176,11 +176,12 @@ func TestContainsIP(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tree := NewIPTree()
+		tree.Add(netip.MustParsePrefix(tt.cidr))
 		bot := &Bot{
-			custom: &atomic.Pointer[[]IPPrefix]{},
+			ips: &atomic.Pointer[IPTree]{},
 		}
-		prefix, _ := netip.ParsePrefix(tt.cidr)
-		bot.custom.Store(&[]netip.Prefix{prefix})
+		bot.ips.Store(tree)
 		result := bot.ContainsIP(tt.ip)
 		if result != tt.match {
 			t.Errorf("ContainsIP(%s, %s) = %v, want %v", tt.cidr, tt.ip, result, tt.match)
@@ -554,9 +555,9 @@ custom:
 	}
 
 	// Should have parsed the valid CIDR
-	prefixes := bot.custom.Load()
-	if len(*prefixes) != 1 {
-		t.Errorf("Expected 1 valid CIDR, got %d", len(*prefixes))
+	tree := bot.ips.Load()
+	if tree.Count() != 1 {
+		t.Errorf("Expected 1 valid CIDR, got %d", tree.Count())
 	}
 }
 

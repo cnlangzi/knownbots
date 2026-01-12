@@ -351,15 +351,3 @@ func Benchmark_MixedTraffic(b *testing.B) {
 		}
 	})
 }
-
-// BenchmarkReload tests the Reload operation performance.
-// This is not a hot path but should still be efficient.
-func BenchmarkReload(b *testing.B) {
-	v := setupTestValidator(b)
-	defer v.Close()
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		v.Reload(v.root)
-	}
-}

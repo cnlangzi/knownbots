@@ -3,23 +3,80 @@ package knownbots
 import (
 	"log"
 	"net"
+	"net/http"
 	"net/netip"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync/atomic"
 
+	"github.com/cnlangzi/knownbots/asn"
+	"github.com/kentik/patricia"
+	"github.com/kentik/patricia/uint_tree"
 	"gopkg.in/yaml.v3"
 )
 
-// IPPrefix is a type alias for net/netip.Prefix for better performance.
 type IPPrefix = netip.Prefix
 
-// BotKind represents the category of a bot based on intent/behavior.
-// See classification matrix in bots/conf.d/ for full reference.
+type IPTree struct {
+	v4 *uint_tree.TreeV4
+	v6 *uint_tree.TreeV6
+}
+
+func NewIPTree() *IPTree {
+	return &IPTree{
+		v4: uint_tree.NewTreeV4(),
+		v6: uint_tree.NewTreeV6(),
+	}
+}
+
+func (t *IPTree) Add(prefix netip.Prefix) {
+	addr := prefix.Addr()
+	if addr.Is4() {
+		patriciaAddr, _, _ := patricia.ParseFromNetIPPrefix(prefix)
+		if patriciaAddr != nil {
+			t.v4.Add(*patriciaAddr, 1, nil)
+		}
+	} else {
+		_, patriciaAddr, _ := patricia.ParseFromNetIPPrefix(prefix)
+		if patriciaAddr != nil {
+			t.v6.Add(*patriciaAddr, 1, nil)
+		}
+	}
+}
+
+func (t *IPTree) Contains(ip netip.Addr) bool {
+	patriciaAddrV4, patriciaAddrV6, _ := patricia.ParseFromNetIPAddr(ip)
+	if ip.Is4() && patriciaAddrV4 != nil {
+		found, _ := t.v4.FindDeepestTag(*patriciaAddrV4)
+		return found
+	}
+	if patriciaAddrV6 != nil {
+		found, _ := t.v6.FindDeepestTag(*patriciaAddrV6)
+		return found
+	}
+	return false
+}
+
+func (t *IPTree) Count() int {
+	return t.v4.CountTags() + t.v6.CountTags()
+}
+
 type BotKind string
 
-// botConfig represents the YAML configuration for a bot.
+const (
+	KindSearchEngine BotKind = "SearchEngine"
+	KindSocialMedia  BotKind = "SocialMedia"
+	KindAITraining   BotKind = "AITraining"
+	KindAIAssist     BotKind = "AIAssist"
+	KindAIMixed      BotKind = "AIMixed"
+	KindSEO          BotKind = "SEO"
+	KindMonitor      BotKind = "Monitor"
+	KindSecurity     BotKind = "Security"
+	KindScraper      BotKind = "Scraper"
+	KindUnknown      BotKind = "Unknown"
+)
+
 type botConfig struct {
 	Name    string   `yaml:"name"`
 	Kind    BotKind  `yaml:"kind"`
@@ -27,54 +84,156 @@ type botConfig struct {
 	UA      string   `yaml:"ua"`
 	URLs    []string `yaml:"urls"`
 	Custom  []string `yaml:"custom"`
+	ASN     []int    `yaml:"asn"`
 	Domains []string `yaml:"domains"`
 	RDNS    bool     `yaml:"rdns"`
 }
 
-const (
-	KindSearchEngine BotKind = "SearchEngine" // Search engine crawlers (Googlebot, Bingbot)
-	KindSocialMedia  BotKind = "SocialMedia"  // Social media preview fetchers (FacebookBot, Twitterbot)
-	KindAITraining   BotKind = "AITraining"   // AI model trainers - only take, no return (GPTBot, ClaudeBot)
-	KindAIAssist     BotKind = "AIAssist"     // AI assistants - search & answer, may bring traffic (PerplexityBot)
-	KindAIMixed      BotKind = "AIMixed"      // Mixed AI purposes (Google-Extended)
-	KindSEO          BotKind = "SEO"          // SEO backlink analyzers (AhrefsBot, SemrushBot)
-	KindMonitor      BotKind = "Monitor"      // Uptime/ad verification (Pingdom, AdsBot)
-	KindSecurity     BotKind = "Security"     // Security scanners (Censys, Shodan)
-	KindScraper      BotKind = "Scraper"      // Content/price scrapers, HTTP client libraries and CLI tools
-	KindUnknown      BotKind = "Unknown"      // Unclassified
-)
-
-// Bot represents the configuration for a single bot.
 type Bot struct {
-	Name    string                      `yaml:"name"`
-	Kind    BotKind                     `yaml:"kind"`
-	Parser  string                      `yaml:"parser"` // parser name, defaults to bot name
-	UA      string                      `yaml:"ua"`
-	URLs    []string                    `yaml:"urls"`
-	custom  *atomic.Pointer[[]IPPrefix] // []IPPrefix, atomic for lock-free reads
-	Domains []string                    `yaml:"domains"`
-	RDNS    bool                        `yaml:"rdns"` // whether to perform RDNS verification
-	Cache   *Cache                      // RDNS cache, initialized by Validator
-	fail    *LRU                        // failed IP cache for fast rejection
+	Name    string   `yaml:"name"`
+	Kind    BotKind  `yaml:"kind"`
+	Parser  string   `yaml:"parser"`
+	UA      string   `yaml:"ua"`
+	URLs    []string `yaml:"urls"`
+	ips     *atomic.Pointer[IPTree]
+	asns    *atomic.Pointer[ASN]
+	ASN     []int    `yaml:"asn"`
+	Domains []string `yaml:"domains"`
+	RDNS    bool     `yaml:"rdns"`
+	rdns    *RDNS
+	fail    *LRU
 }
 
-// Load loads all bot configurations from the bots directory.
-// It loads built-in bots from embedded configuration and then
-// loads custom bots from the conf.d subdirectory.
-// Custom bots override built-in bots with the same name.
+func (b *Bot) storePrefixes(prefixes []netip.Prefix) {
+	if len(prefixes) == 0 {
+		return
+	}
+	if b.ips == nil {
+		b.ips = &atomic.Pointer[IPTree]{}
+	}
+
+	tree := NewIPTree()
+	for _, prefix := range prefixes {
+		tree.Add(prefix)
+	}
+	b.ips.Store(tree)
+}
+
+func (b *Bot) initIPs(path string) {
+	if len(b.URLs) > 0 {
+		return
+	}
+
+	data, err := os.ReadFile(path)
+	if err != nil {
+		if EnableLog {
+			log.Printf("initIPs: failed to read IP prefixes from %q: %v", path, err)
+		}
+		return
+	}
+
+	var prefixes []netip.Prefix
+	for _, line := range strings.Split(string(data), "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		prefix, err := netip.ParsePrefix(line)
+		if err != nil {
+			continue
+		}
+		prefixes = append(prefixes, prefix)
+	}
+
+	b.storePrefixes(prefixes)
+}
+
+func (b *Bot) refreshIPs(httpClient *http.Client, root string) {
+	prefixes := downloadIPs(httpClient, b)
+	if len(prefixes) == 0 {
+		return
+	}
+
+	b.storePrefixes(prefixes)
+	writeIPs(filepath.Join(root, b.Name, "ips.txt"), prefixes)
+}
+
+func (b *Bot) initRDNS(path string) {
+	if b.RDNS {
+		rdnscache, err := NewRDNS(path)
+		if err != nil {
+			if EnableLog {
+				log.Printf("[knownbots] failed to create rdns cache for %s: %v", path, err)
+			}
+			return
+		}
+		b.rdns = rdnscache
+	}
+
+}
+
+func (b *Bot) refreshRDNS() {
+	if b.RDNS && b.rdns != nil {
+		rdnscache := b.rdns
+		rdnscache.Prune(b.Domains)
+
+		if err := rdnscache.Persist(); err != nil {
+			if EnableLog {
+				log.Printf("[knownbots] failed to persist cache for %s: %v", b.Name, err)
+			}
+		}
+	}
+}
+
+func (b *Bot) initASN(store *asn.Store) {
+	if len(b.ASN) == 0 {
+		return
+	}
+
+	if b.asns == nil {
+		b.asns = &atomic.Pointer[ASN]{}
+	}
+
+	cache := NewASN()
+	for _, asnNum := range b.ASN {
+		prefixes := store.Load(b.Name, asnNum)
+		if len(prefixes) == 0 {
+			continue
+		}
+		cache.Add(asnNum, prefixes)
+	}
+	b.asns.Store(cache)
+}
+
+func (b *Bot) refreshASN(store *asn.Store) {
+	if len(b.ASN) == 0 {
+		return
+	}
+
+	newASN := NewASN()
+	for _, asnNum := range b.ASN {
+		prefixes := store.Refresh(b.Name, asnNum)
+		if len(prefixes) == 0 {
+			continue
+		}
+		newASN.Add(asnNum, prefixes)
+	}
+
+	if b.asns == nil {
+		b.asns = &atomic.Pointer[ASN]{}
+	}
+	b.asns.Store(newASN)
+}
+
 func Load(dir string) ([]*Bot, error) {
-	// First, load all built-in bots
 	embedded, err := loadEmbedded()
 	if err != nil {
 		return nil, err
 	}
 
-	// Then, load custom bots from user's directory
 	customDir := filepath.Join(dir, "conf.d")
 	entries, err := os.ReadDir(customDir)
 	if err != nil {
-		// Only treat "dir doesn't exist" as "use built-in only"
-		// Return other errors (permission, I/O) so callers can handle them
 		if os.IsNotExist(err) {
 			bots := make([]*Bot, 0, len(embedded))
 			for _, bot := range embedded {
@@ -85,7 +244,6 @@ func Load(dir string) ([]*Bot, error) {
 		return nil, err
 	}
 
-	// Merge: start with embedded, then override with custom
 	bots := embedded
 
 	for _, entry := range entries {
@@ -107,7 +265,6 @@ func Load(dir string) ([]*Bot, error) {
 			continue
 		}
 
-		// Custom bot overrides built-in bot with the same name
 		if _, exists := embedded[bot.Name]; exists {
 			if EnableLog {
 				log.Printf("[knownbots] custom config %q overrides built-in bot", bot.Name)
@@ -116,7 +273,6 @@ func Load(dir string) ([]*Bot, error) {
 		bots[bot.Name] = bot
 	}
 
-	// Convert map to slice
 	result := make([]*Bot, 0, len(bots))
 	for _, bot := range bots {
 		result = append(result, bot)
@@ -125,35 +281,45 @@ func Load(dir string) ([]*Bot, error) {
 	return result, nil
 }
 
-// loadBot loads a single bot configuration file.
 func loadBot(path string) (*Bot, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
 
+	return buildBot(data, path)
+}
+
+func buildBot(data []byte, filename string) (*Bot, error) {
 	var cfg botConfig
+
 	if err := yaml.Unmarshal(data, &cfg); err != nil {
 		return nil, err
 	}
 
-	// Validate required Name field
 	if cfg.Name == "" {
 		if EnableLog {
-			log.Printf("[knownbots] skip %q: missing required 'name' field", path)
+			log.Printf("[knownbots] skip %q: missing required 'name' field", filename)
 		}
 		return nil, nil
 	}
 
-	// Use bot name as default parser if not specified
 	parser := cfg.Parser
 	if parser == "" {
 		parser = cfg.Name
 	}
 
 	customNets := parseCIDRs(cfg.Custom)
-	customValue := &atomic.Pointer[[]IPPrefix]{}
-	customValue.Store(&customNets)
+	ips := &atomic.Pointer[IPTree]{}
+	if len(customNets) > 0 {
+		tree := NewIPTree()
+		for _, prefix := range customNets {
+			tree.Add(prefix)
+		}
+		if tree.Count() > 0 {
+			ips.Store(tree)
+		}
+	}
 
 	return &Bot{
 		Name:    cfg.Name,
@@ -161,13 +327,16 @@ func loadBot(path string) (*Bot, error) {
 		Parser:  parser,
 		UA:      cfg.UA,
 		URLs:    cfg.URLs,
-		custom:  customValue,
+		ips:     ips,
+		asns:    nil,
+		ASN:     cfg.ASN,
 		Domains: cfg.Domains,
 		RDNS:    cfg.RDNS,
+		rdns:    nil,
+		fail:    nil,
 	}, nil
 }
 
-// parseCIDRs converts CIDR strings to IPPrefix.
 func parseCIDRs(cidrs []string) []IPPrefix {
 	var nets []IPPrefix
 	for _, cidr := range cidrs {
@@ -179,65 +348,52 @@ func parseCIDRs(cidrs []string) []IPPrefix {
 	return nets
 }
 
-// ContainsIP checks if the IP is in the bot's custom IP ranges.
 func (b *Bot) ContainsIP(ipStr string) bool {
 	ip, err := netip.ParseAddr(ipStr)
 	if err != nil {
 		return false
 	}
 
-	custom := b.custom.Load()
-	for _, prefix := range *custom {
-		if prefix.Contains(ip) {
+	if b.ips != nil {
+		tree := b.ips.Load()
+		if tree != nil && tree.Contains(ip) {
 			return true
 		}
 	}
 	return false
 }
 
-// VerifyRDNS checks if the IP's reverse DNS hostname matches this bot's domains.
-// It uses the bot's cache for performance.
 func (b *Bot) VerifyRDNS(ipStr string) ResultStatus {
-	cache := b.Cache
-
-	// Check fail cache first (fast rejection)
 	if b.fail.Contains(ipStr) {
 		return StatusFailed
 	}
 
-	// Check valid cache first
-	if hostname, ok := cache.Get(ipStr); ok {
+	if hostname, ok := b.rdns.Get(ipStr); ok {
 		if matchDomain(hostname, b.Domains) {
 			return StatusVerified
 		}
 		return StatusFailed
 	}
 
-	// Perform RDNS lookup
 	names, err := net.LookupAddr(ipStr)
 	if err != nil {
-		// Distinguish network errors from NXDOMAIN (no PTR record)
 		if dnsErr, ok := err.(*net.DNSError); ok && dnsErr.IsNotFound {
-			// NXDOMAIN: PTR record does not exist - verification failed
 			b.fail.Add(ipStr)
 			return StatusFailed
 		}
-		// Network error (timeout, connection issue, etc.) - allow retry
 		return StatusPending
 	}
 	if len(names) == 0 {
-		// No PTR records - verification failed, add to fail cache
 		b.fail.Add(ipStr)
 		return StatusFailed
 	}
 
 	hostname := strings.TrimSuffix(names[0], ".")
 	if matchDomain(hostname, b.Domains) {
-		cache.Set(ipStr, hostname)
+		b.rdns.Set(ipStr, hostname)
 		return StatusVerified
 	}
 
-	// Valid RDNS but not matching domain - mark as failed
 	b.fail.Add(ipStr)
 	return StatusFailed
 }
