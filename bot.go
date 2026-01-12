@@ -126,6 +126,9 @@ func (b *Bot) initIPs(path string) {
 
 	data, err := os.ReadFile(path)
 	if err != nil {
+		if EnableLog {
+			log.Printf("initIPs: failed to read IP prefixes from %q: %v", path, err)
+		}
 		return
 	}
 
