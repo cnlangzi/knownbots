@@ -2,11 +2,15 @@ package knownbots
 
 import (
 	"context"
-	"log"
+	"fmt"
 	"net/http"
+	"net/netip"
+	"os"
 	"path/filepath"
 	"sync/atomic"
 	"time"
+
+	"github.com/cnlangzi/knownbots/asn"
 )
 
 // Default settings
@@ -38,6 +42,7 @@ type Validator struct {
 	root       string
 	bots       atomic.Pointer[[]*Bot]          // []*Bot, atomic for lock-free reads
 	uaIndex    atomic.Pointer[map[byte][]*Bot] // map[byte][]*Bot, byte-level index for UA lookup
+	asnStore   *asn.Store
 	cancel     context.CancelFunc
 	failLimit  int
 	classifyUA bool
@@ -71,21 +76,28 @@ func New(opts ...Option) (*Validator, error) {
 		return nil, err
 	}
 
+	// Initialize ASN store first
+	asnStore, err := asn.NewStore(cfg.Root)
+	if err != nil {
+		return nil, err
+	}
+
 	for _, bot := range bots {
-		if !bot.RDNS {
-			continue
+		botDir := filepath.Join(cfg.Root, bot.Name)
+		if err := os.MkdirAll(botDir, 0755); err != nil {
+			return nil, fmt.Errorf("failed to create cache directory: %w", err)
 		}
-		cache, err := NewCache(filepath.Join(cfg.Root, bot.Name, "rdns.txt"))
-		if err != nil {
-			return nil, err
-		}
-		bot.Cache = cache
+
+		bot.initIPs(filepath.Join(botDir, "ips.txt"))
+		bot.initASN(asnStore)
+		bot.initRDNS(filepath.Join(botDir, "rdns.txt"))
 		bot.fail = NewLRU(cfg.FailLimit)
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	v := &Validator{
 		root:       cfg.Root,
+		asnStore:   asnStore,
 		cancel:     cancel,
 		failLimit:  cfg.FailLimit,
 		classifyUA: cfg.ClassifyUA,
@@ -122,40 +134,19 @@ func (v *Validator) startScheduler(ctx context.Context) {
 func (v *Validator) runScheduler(httpClient *http.Client) {
 	bots := v.getBots()
 
-	// Refresh IP ranges: update memory first, then persist
 	for _, bot := range bots {
-		newIPs := downloadIPs(httpClient, bot)
-		if len(newIPs) == 0 {
-			continue
-		}
-
-		// Update memory (effective immediately)
-		bot.custom.Store(&newIPs)
-
-		// Persist to file (optional, failure is OK)
-		path := filepath.Join(v.root, bot.Name, "ips.txt")
-		writeIPs(path, newIPs)
-	}
-
-	for _, bot := range bots {
-		if !bot.RDNS || bot.Cache == nil {
-			continue
-		}
-
-		cache := bot.Cache
-		cache.Prune(bot.Domains)
-
-		if err := cache.Persist(); err != nil {
-			if EnableLog {
-				log.Printf("[knownbots] failed to persist cache for %s: %v", bot.Name, err)
-			}
-		}
+		// Update IP ranges
+		bot.refreshIPs(httpClient, v.root)
+		// Update ASN data  with ASN configured
+		bot.refreshASN(v.asnStore)
+		// Prune and persist RDNS caches
+		bot.refreshRDNS()
 	}
 }
 
 // Validate verifies if the given UserAgent and IP belong to a known bot.
 // By default (classifyUA disabled), unknown UAs return IsBot=false for performance.
-// When WithClassifyUA() is enabled:
+// When WithClassifyUA() enabled:
 //   - IsBot: true if UA matches a known bot or is suspicious, false if it's a legitimate browser
 //   - IsVerified: true if the IP is verified for the bot
 //   - Status: verified (bot confirmed), failed (bot suspected, IP not verified), or unknown
@@ -187,13 +178,19 @@ func (v *Validator) Validate(ua, ip string) Result {
 }
 
 // verifyIP verifies if the IP belongs to the given bot.
+// Verification order: IP ranges → ASN → RDNS (fastest to slowest)
 func (v *Validator) verifyIP(bot *Bot, ipStr string) Result {
-	// Check IP ranges first
+	// Check IP ranges first (fastest, ~200ns)
 	if bot.ContainsIP(ipStr) {
 		return Result{BotName: bot.Name, BotKind: bot.Kind, Status: StatusVerified, IsBot: true}
 	}
 
-	// RDNS verification
+	// ASN verification (fast after cache load, ~100ns)
+	if bot.asns != nil && bot.asns.Contains(netip.MustParseAddr(ipStr)) {
+		return Result{BotName: bot.Name, BotKind: bot.Kind, Status: StatusVerified, IsBot: true}
+	}
+
+	// RDNS verification (50-200ms cold, ~450ns cached)
 	if bot.RDNS {
 		switch bot.VerifyRDNS(ipStr) {
 		case StatusVerified:
@@ -205,7 +202,7 @@ func (v *Validator) verifyIP(bot *Bot, ipStr string) Result {
 		}
 	}
 
-	// No RDNS, IP not in ranges
+	// No match found
 	return Result{BotName: bot.Name, BotKind: bot.Kind, Status: StatusFailed, IsBot: true}
 }
 
@@ -245,12 +242,12 @@ func (v *Validator) Reload(root string) error {
 		if !bot.RDNS {
 			continue
 		}
-		if bot.Cache == nil {
-			cache, err := NewCache(filepath.Join(root, bot.Name, "rdns.txt"))
+		if bot.rdns == nil {
+			rdnscache, err := NewRDNS(filepath.Join(root, bot.Name, "rdns.txt"))
 			if err != nil {
 				return err
 			}
-			bot.Cache = cache
+			bot.rdns = rdnscache
 		}
 		if bot.fail == nil {
 			bot.fail = NewLRU(v.failLimit)

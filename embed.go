@@ -3,12 +3,8 @@ package knownbots
 import (
 	"embed"
 	"io/fs"
-	"log"
 	"path/filepath"
 	"strings"
-	"sync/atomic"
-
-	"gopkg.in/yaml.v3"
 )
 
 //go:embed bots/conf.d/*.yaml
@@ -37,7 +33,7 @@ func loadEmbedded() (map[string]*Bot, error) {
 			return err
 		}
 
-		bot, err := parseBotConfig(data, path)
+		bot, err := buildBot(data, path)
 		if err != nil {
 			return err
 		}
@@ -54,41 +50,4 @@ func loadEmbedded() (map[string]*Bot, error) {
 	}
 
 	return bots, nil
-}
-
-// parseBotConfig parses bot configuration from YAML data.
-func parseBotConfig(data []byte, filename string) (*Bot, error) {
-	var cfg botConfig
-
-	if err := yaml.Unmarshal(data, &cfg); err != nil {
-		return nil, err
-	}
-
-	// Validate required Name field
-	if cfg.Name == "" {
-		if EnableLog {
-			log.Printf("[knownbots] skip %q: missing required 'name' field", filename)
-		}
-		return nil, nil
-	}
-
-	parser := cfg.Parser
-	if parser == "" {
-		parser = cfg.Name
-	}
-
-	customNets := parseCIDRs(cfg.Custom)
-	customValue := &atomic.Pointer[[]IPPrefix]{}
-	customValue.Store(&customNets)
-
-	return &Bot{
-		Name:    cfg.Name,
-		Kind:    cfg.Kind,
-		Parser:  parser,
-		UA:      cfg.UA,
-		URLs:    cfg.URLs,
-		custom:  customValue,
-		Domains: cfg.Domains,
-		RDNS:    cfg.RDNS,
-	}, nil
 }

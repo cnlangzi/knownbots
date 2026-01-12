@@ -148,6 +148,8 @@ urls:                                      # Official IP list URLs (auto-downloa
   - "https://www.gstatic.com/ipranges/google.json"
 custom:                                    # Static CIDR ranges (always checked)
   - "66.249.64.0/19"
+asn:                                       # ASN numbers for verification (optional)
+  - 15169
 domains:                                   # Verified RDNS domains
   - "googlebot.com"
   - "google.com"
@@ -157,6 +159,7 @@ rdns: true                             # Enable RDNS verification (false = IP-on
 **Important**:
 - User-Agent markers (`ua`) are **case-sensitive**. Official bots use fixed casing (e.g., "Googlebot", never "googlebot"). This prevents forgery attempts where attackers alter casing to bypass detection.
 - Set `rdns: false` for bots that only need IP range verification (faster, no DNS queries)
+- ASN verification is optional and provides faster IP ownership verification (~35ns) compared to RDNS (~450ns) for bots with official ASN registrations
 
 ### Parser Selection
 
@@ -207,7 +210,13 @@ Choose the correct parser based on the IP list format:
                   │
                   ├─ Hit ──▶ Return: verified
                   │
-                  ├─ Miss + rdns=false ──▶ Return: failed
+                  ├─ Miss + asn empty ──▶ Check RDNS
+                  │
+                  ├─ Miss + asn defined ──▶ Check ASN
+                  │                              │
+                  │                              ├─ Hit ──▶ Return: verified
+                  │                              │
+                  │                              └─ Miss ──▶ Check RDNS
                   │
                   ▼
          ┌────────────────────┐
@@ -240,19 +249,20 @@ Choose the correct parser based on the IP list format:
 │                    Background Scheduler                      │
 └─────────────────┬───────────────────────────────────────────┘
                   │
-        ┌─────────┴─────────┐
-        │                   │
-        ▼                   ▼
-  ┌──────────┐      ┌──────────────┐
-  │ Refresh  │      │ Prune & Save │
-  │ IP Lists │      │ RDNS Cache   │
-  │ (HTTP)   │      │ (rdns=true)  │
-  └──────────┘      └──────────────┘
-        │                   │
-        ▼                   ▼
-  Update memory      Remove invalid
-  Persist to file    Persist to file
-                     (only for rdns=true bots)
+        ┌─────────┴─────────┬──────────┐
+        │                   │          │
+        ▼                   ▼          ▼
+  ┌──────────┐      ┌──────────────┐ ┌──────────┐
+  │ Refresh  │      │ Update ASN   │ │ Prune &  │
+  │ IP Lists │      │ Data         │ │ Save     │
+  │ (HTTP)   │      │ (RIPE API)   │ │ RDNS     │
+  └──────────┘      └──────────────┘ │ Cache    │
+        │                   │        │ (rdns=t) │
+        ▼                   ▼        └──────────┘
+  Update memory      Update cache          │
+  Persist to file    Persist to file       ▼
+                     (per-bot dir)    Remove invalid
+                                        Persist to file
 ```
 
 ## Performance
@@ -264,11 +274,12 @@ Choose the correct parser based on the IP list format:
 | **UA matching (hit first)** | 165ns | 0 | Byte index + word boundary check |
 | **UA matching (hit middle)** | 300ns | 0 | Worst case: mid-list match |
 | **UA matching (miss)** | 640ns | 0 | Full scan + browser classification |
-| **Validate (cache hit)** | 227ns | 0 | IP range check only |
+| **Validate (IP range hit)** | 227ns | 0 | Radix tree CIDR matching |
+| **Validate (ASN hit)** | 35ns | 1 | O(1) Patricia tree lookup |
 | **Validate (RDNS hit)** | 450ns | 0 | Cache lookup + domain match |
 | **Validate (cold lookup)** | 50-200ms | 1-2 | DNS query (first time only) |
 
-**Key Insight**: After initial RDNS lookup, all subsequent verifications for the same IP are **sub-microsecond** (227-450ns).
+**Key Insight**: Verification priority is IP ranges → ASN → RDNS. ASN verification (~35ns) is faster than RDNS cache lookup (~450ns) and ideal for bots with official ASN registrations.
 
 ### Scalability
 
@@ -455,6 +466,7 @@ Adding a new bot requires **no code changes** - just create a YAML configuration
 | Method | When to Use | Example |
 |--------|-------------|---------|
 | **URL + Parser** | Bot has official JSON/TXT IP list | Googlebot, Bingbot, GPTBot |
+| **ASN** | Bot has official ASN registration | Cloudflare (AS13335), Google (AS15169) |
 | **RDNS Only** | No official IP list, verify via DNS | Baidu, Yandex |
 
 ### Step 2: Create Configuration File
@@ -470,7 +482,14 @@ ua: "NewBot"              # User-Agent fragment (case-sensitive!)
 urls:
   - "https://example.com/bot-ips.json"
 
-# Case 2: Bot with RDNS verification only (no official IP list)
+# Case 2: Bot with ASN verification (fastest option)
+kind: SearchEngine
+name: newbot
+ua: "NewBot"
+asn:
+  - 12345                # ASN number (fetched from RIPE API)
+
+# Case 3: Bot with RDNS verification only (no official IP list)
 kind: SearchEngine
 name: newbot
 ua: "NewBot"

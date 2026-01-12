@@ -8,16 +8,16 @@ import (
 	"sync/atomic"
 )
 
-// Cache provides thread-safe reverse DNS lookup caching.
+// RDNS provides thread-safe reverse DNS lookup caching.
 // It stores successfully verified IP→hostname mappings (persistent).
-type Cache struct {
+type RDNS struct {
 	valid atomic.Pointer[map[string]string] // *map[string]string (read-heavy, lock-free reads)
 	file  string
 }
 
-// NewCache creates a new Cache instance.
-func NewCache(filePath string) (*Cache, error) {
-	c := &Cache{
+// NewRDNS creates a new RDNS cache instance.
+func NewRDNS(filePath string) (*RDNS, error) {
+	c := &RDNS{
 		file: filePath,
 	}
 
@@ -35,14 +35,14 @@ func NewCache(filePath string) (*Cache, error) {
 }
 
 // Get retrieves a value from the cache.
-func (c *Cache) Get(key string) (string, bool) {
+func (c *RDNS) Get(key string) (string, bool) {
 	m := c.valid.Load()
 	val, ok := (*m)[key]
 	return val, ok
 }
 
 // Set stores a successful lookup result in the cache.
-func (c *Cache) Set(key, value string) {
+func (c *RDNS) Set(key, value string) {
 	old := c.valid.Load()
 	// Check if already exists (fast path)
 	if _, ok := (*old)[key]; ok {
@@ -59,7 +59,7 @@ func (c *Cache) Set(key, value string) {
 }
 
 // loadFromFile loads cache entries from the persistent file.
-func (c *Cache) loadFromFile() error {
+func (c *RDNS) loadFromFile() error {
 	f, err := os.Open(c.file)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -92,7 +92,7 @@ func (c *Cache) loadFromFile() error {
 }
 
 // Persist writes all entries to the persistent file.
-func (c *Cache) Persist() error {
+func (c *RDNS) Persist() error {
 	m := c.valid.Load()
 
 	f, err := os.Create(c.file)
@@ -111,7 +111,7 @@ func (c *Cache) Persist() error {
 }
 
 // Prune removes entries from the cache that are no longer valid.
-func (c *Cache) Prune(domains []string) {
+func (c *RDNS) Prune(domains []string) {
 	old := c.valid.Load()
 	newMap := make(map[string]string, len(*old))
 
@@ -125,12 +125,12 @@ func (c *Cache) Prune(domains []string) {
 }
 
 // Size returns the number of entries in the cache.
-func (c *Cache) Size() int {
+func (c *RDNS) Size() int {
 	m := c.valid.Load()
 	return len(*m)
 }
 
 // Close is a no-op. Cache persistence is handled by Persist().
-func (c *Cache) Close() error {
+func (c *RDNS) Close() error {
 	return nil
 }
