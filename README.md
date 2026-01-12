@@ -322,9 +322,6 @@ func New(opts ...Option) (*Validator, error)
 // Validate verifies User-Agent and IP address
 func (v *Validator) Validate(ua, ip string) Result
 
-// Reload reloads bot configurations from disk
-func (v *Validator) Reload(root string) error
-
 // Close stops background scheduler
 func (v *Validator) Close() error
 ```
@@ -549,11 +546,17 @@ Parser: `github`
 ```
 Parser: `stripe` (converts individual IPs to /32 or /128 CIDR notation)
 
-### Step 4: Reload Configuration
+### Step 4: Restart Validator
+
+To apply new bot configurations, restart your application or recreate the Validator:
 
 ```go
-// Hot reload without restart
-v.Reload("./bots")
+// Create a new validator with updated bots
+v, err := knownbots.New(knownbots.WithRoot("./bots"))
+if err != nil {
+    log.Fatal(err)
+}
+defer v.Close()
 ```
 
 ### Step 5: Verify
