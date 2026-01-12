@@ -184,9 +184,12 @@ func (v *Validator) verifyIP(bot *Bot, ipStr string) Result {
 
 	// ASN verification (fast after cache load, ~100ns)
 	if bot.asns != nil {
-		ip, err := netip.ParseAddr(ipStr)
-		if err == nil && bot.asns.Contains(ip) {
-			return Result{BotName: bot.Name, BotKind: bot.Kind, Status: StatusVerified, IsBot: true}
+		cache := bot.asns.Load()
+		if cache != nil {
+			ip, err := netip.ParseAddr(ipStr)
+			if err == nil && cache.Contains(ip) {
+				return Result{BotName: bot.Name, BotKind: bot.Kind, Status: StatusVerified, IsBot: true}
+			}
 		}
 	}
 

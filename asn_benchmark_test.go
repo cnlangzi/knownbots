@@ -1,8 +1,10 @@
-package asn
+package knownbots
 
 import (
 	"net/netip"
 	"testing"
+
+	"github.com/cnlangzi/knownbots/asn"
 )
 
 func BenchmarkASNCache_Add(b *testing.B) {
@@ -49,26 +51,6 @@ func BenchmarkASNCache_Contains(b *testing.B) {
 			i++
 		}
 	})
-}
-
-func BenchmarkASNCache_Clone(b *testing.B) {
-	cache := NewASN()
-	prefixes := []netip.Prefix{
-		netip.MustParsePrefix("8.8.8.0/24"),
-		netip.MustParsePrefix("8.8.4.0/24"),
-		netip.MustParsePrefix("1.1.1.0/24"),
-		netip.MustParsePrefix("1.0.0.0/24"),
-		netip.MustParsePrefix("9.9.9.0/24"),
-		netip.MustParsePrefix("10.0.0.0/24"),
-		netip.MustParsePrefix("11.0.0.0/24"),
-		netip.MustParsePrefix("12.0.0.0/24"),
-	}
-	cache.Add(15169, prefixes)
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		cache.Clone()
-	}
 }
 
 func BenchmarkASNCache_Count(b *testing.B) {
@@ -152,7 +134,7 @@ func BenchmarkValidatePrefix(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		for _, p := range prefixes {
-			ValidatePrefix(p)
+			asn.ValidatePrefix(p)
 		}
 	}
 }

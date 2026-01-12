@@ -3,9 +3,8 @@ package knownbots
 import (
 	"os"
 	"path/filepath"
+	"sync/atomic"
 	"testing"
-
-	"github.com/cnlangzi/knownbots/asn"
 )
 
 func TestValidateInvalidIP(t *testing.T) {
@@ -109,8 +108,9 @@ asn:
 		t.Fatal("testbot not found")
 	}
 
-	asnCache := asn.NewASN()
-	testBot.asns = asnCache
+	asnCache := NewASN()
+	testBot.asns = &atomic.Pointer[ASN]{}
+	testBot.asns.Store(asnCache)
 
 	testCases := []struct {
 		name       string

@@ -96,7 +96,7 @@ type Bot struct {
 	UA      string   `yaml:"ua"`
 	URLs    []string `yaml:"urls"`
 	ips     *atomic.Pointer[IPTree]
-	asns    *asn.ASN
+	asns    *atomic.Pointer[ASN]
 	ASN     []int    `yaml:"asn"`
 	Domains []string `yaml:"domains"`
 	RDNS    bool     `yaml:"rdns"`
@@ -188,30 +188,38 @@ func (b *Bot) initASN(store *asn.Store) {
 	}
 
 	if b.asns == nil {
-		b.asns = asn.NewASN()
+		b.asns = &atomic.Pointer[ASN]{}
 	}
 
+	cache := NewASN()
 	for _, asnNum := range b.ASN {
 		prefixes := store.Load(b.Name, asnNum)
 		if len(prefixes) == 0 {
 			continue
 		}
-		b.asns.Add(asnNum, prefixes)
+		cache.Add(asnNum, prefixes)
 	}
+	b.asns.Store(cache)
 }
 
 func (b *Bot) refreshASN(store *asn.Store) {
-	if b.asns == nil {
+	if len(b.ASN) == 0 {
 		return
 	}
 
+	newASN := NewASN()
 	for _, asnNum := range b.ASN {
 		prefixes := store.Refresh(b.Name, asnNum)
 		if len(prefixes) == 0 {
 			continue
 		}
-		b.asns.Add(asnNum, prefixes)
+		newASN.Add(asnNum, prefixes)
 	}
+
+	if b.asns == nil {
+		b.asns = &atomic.Pointer[ASN]{}
+	}
+	b.asns.Store(newASN)
 }
 
 func Load(dir string) ([]*Bot, error) {

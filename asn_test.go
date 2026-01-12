@@ -1,8 +1,10 @@
-package asn
+package knownbots
 
 import (
 	"net/netip"
 	"testing"
+
+	"github.com/cnlangzi/knownbots/asn"
 )
 
 func TestNewASN(t *testing.T) {
@@ -10,11 +12,8 @@ func TestNewASN(t *testing.T) {
 	if cache == nil {
 		t.Fatal("expected non-nil cache")
 	}
-	if cache.IPv4Tree() == nil {
-		t.Error("expected non-nil IPv4Tree")
-	}
-	if cache.IPv6Tree() == nil {
-		t.Error("expected non-nil IPv6Tree")
+	if cache.tree == nil {
+		t.Error("expected non-nil tree")
 	}
 }
 
@@ -62,22 +61,6 @@ func TestASNContains(t *testing.T) {
 	}
 }
 
-func TestASNClone(t *testing.T) {
-	cache := NewASN()
-	prefixes := []netip.Prefix{
-		netip.MustParsePrefix("8.8.8.0/24"),
-	}
-	cache.Add(15169, prefixes)
-
-	clone := cache.Clone()
-	if clone == nil {
-		t.Fatal("expected non-nil clone")
-	}
-	if clone.Count() != cache.Count() {
-		t.Errorf("clone count %d != original count %d", clone.Count(), cache.Count())
-	}
-}
-
 func TestDeduplicate(t *testing.T) {
 	prefixes := []netip.Prefix{
 		netip.MustParsePrefix("8.8.8.0/24"),
@@ -104,7 +87,7 @@ func TestValidatePrefix(t *testing.T) {
 
 	for _, tt := range tests {
 		prefix := netip.MustParsePrefix(tt.prefix)
-		if got := ValidatePrefix(prefix); got != tt.expected {
+		if got := asn.ValidatePrefix(prefix); got != tt.expected {
 			t.Errorf("ValidatePrefix(%s) = %v, want %v", tt.prefix, got, tt.expected)
 		}
 	}
