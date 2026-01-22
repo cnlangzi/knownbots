@@ -1,9 +1,9 @@
 # UptimeRobot - Monitoring service
-# https://uptimerobot.com/inc/files/ips/IPv4.txt
-# TXT format: Plain text, one CIDR per line
+# https://api.uptimerobot.com/meta/ips
+# JSON format: {"prefixes": [{"ip_prefix": "3.12.251.153/32"}, {"ipv6_prefix": "..."}]}
 kind: Monitor
 name: uptimerobot
-parser: txt
+parser: uptimerobot
 ua: "UptimeRobot"
 urls:
-  - "https://uptimerobot.com/inc/files/ips/IPv4.txt"
+  - "https://api.uptimerobot.com/meta/ips"

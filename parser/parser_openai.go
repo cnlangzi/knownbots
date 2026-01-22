@@ -9,7 +9,6 @@ import (
 
 type OpenAIParser struct{}
 
-// openaiResponse represents the JSON response from OpenAI-style IP range APIs.
 type openaiResponse struct {
 	Prefixes []struct {
 		Prefix string `json:"prefix"`
@@ -21,13 +20,8 @@ func (p *OpenAIParser) Name() string {
 }
 
 func (p *OpenAIParser) Parse(r io.Reader) ([]netip.Prefix, error) {
-	data, err := io.ReadAll(r)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read data: %w", err)
-	}
-
 	var resp openaiResponse
-	if err := json.Unmarshal(data, &resp); err != nil {
+	if err := json.NewDecoder(r).Decode(&resp); err != nil {
 		return nil, fmt.Errorf("failed to parse openai json: %w", err)
 	}
 
