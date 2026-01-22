@@ -9,7 +9,6 @@ import (
 
 type UptimeRobotParser struct{}
 
-// uptimeRobotResponse represents the JSON response from UptimeRobot's IP range API.
 type uptimeRobotResponse struct {
 	Prefixes []struct {
 		IPPrefix   string `json:"ip_prefix"`
@@ -22,13 +21,8 @@ func (p *UptimeRobotParser) Name() string {
 }
 
 func (p *UptimeRobotParser) Parse(r io.Reader) ([]netip.Prefix, error) {
-	data, err := io.ReadAll(r)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read data: %w", err)
-	}
-
 	var resp uptimeRobotResponse
-	if err := json.Unmarshal(data, &resp); err != nil {
+	if err := json.NewDecoder(r).Decode(&resp); err != nil {
 		return nil, fmt.Errorf("failed to parse uptimerobot json: %w", err)
 	}
 
