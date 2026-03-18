@@ -1,0 +1,8 @@
+# Google-Read-Aloud - Text-to-speech crawler for Google Assistant and Google Home
+# https://developers.google.com/crawling/docs/crawlers-fetchers/overview#google-read-aloud
+kind: SearchEngine
+name: google-read-aloud
+parser: google
+ua: "Google-Read-Aloud"
+urls:
+  - "https://developers.google.com/static/search/apis/ipranges/user-triggered-fetchers-google.json"
