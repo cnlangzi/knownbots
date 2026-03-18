@@ -1,8 +1,9 @@
 # OpenAI ChatGPT user agent
-# https://developers.cloudflare.com/bots/concepts/bot/verified-bots/
+# https://developers.openai.com/api/docs/bots
 kind: AIAssist
 name: chatgpt-user
+# OpenAI uses the same JSON format as Google ({"prefixes": [{"ipv4Prefix": ...}]})
+parser: google
 ua: "ChatGPT-User"
-rdns: true
-domains:
-  - "openai.com"
+urls:
+  - "https://openai.com/chatgpt-user.json"
