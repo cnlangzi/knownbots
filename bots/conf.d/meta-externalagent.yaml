@@ -1,10 +1,7 @@
 # Meta AI/Facebook crawler
-# https://developers.cloudflare.com/bots/concepts/bot/verified-bots/
+# https://developers.facebook.com/docs/sharing/webmasters/crawler
 kind: AITraining
 name: meta-externalagent
-ua: "Meta-ExternalAgent"
-rdns: true
-domains:
-  - "fbsv.net"
-  - "tfbnw.net"
-  - "facebook.com"
+ua: "meta-externalagent"
+asn:
+  - 32934
